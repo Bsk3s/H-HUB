@@ -81,6 +81,7 @@
       "bibleApiKey": "c9afcb2ed06b4d336db834d2e03526cf",
       "apiUrl": "https://livekit-voice-agent-0jz0.onrender.com"
     },
+    "owner": "bstr-studio",
     "developer": {
       "tool": "expo-cli"
     },
