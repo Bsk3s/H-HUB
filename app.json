@@ -1,29 +1,91 @@
 {
   "expo": {
-    "name": "livekit-expo49-test",
-    "slug": "livekit-expo49-test",
+    "name": "Heavenly Hub",
+    "slug": "heavenlyhub",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/images/HBMAIN1.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bsk3s.heavenlyhub",
+      "platformVersion": "14.0",
+      "deploymentTarget": "14.0",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app uses the camera for video calls",
+        "NSMicrophoneUsageDescription": "This app uses the microphone for voice calls"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.bsk3s.heavenlyhub",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "a-heavenlyhub.com",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "scheme": "com.bsk3s.heavenlyhub",
+    "updates": {
+      "enabled": false
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "14.0"
+          },
+          "android": {
+            "minSdkVersion": 24
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "1fa190f3-7594-45fd-82f4-91a715d1625f"
+      },
+      "bibleApiKey": "c9afcb2ed06b4d336db834d2e03526cf",
+      "apiUrl": "https://livekit-voice-agent-0jz0.onrender.com"
+    },
+    "developer": {
+      "tool": "expo-cli"
+    },
+    "packagerOpts": {
+      "host": "0.0.0.0"
     }
   }
 }
