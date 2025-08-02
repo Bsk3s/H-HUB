@@ -1,15 +1,6 @@
 PODS:
-  - AppAuth (1.7.6):
-    - AppAuth/Core (= 1.7.6)
-    - AppAuth/ExternalUserAgent (= 1.7.6)
-  - AppAuth/Core (1.7.6)
-  - AppAuth/ExternalUserAgent (1.7.6):
-    - AppAuth/Core
-  - ASN1Decoder (1.10.0)
   - boost (1.76.0)
   - DoubleConversion (1.1.6)
-  - EASClient (0.6.0):
-    - ExpoModulesCore
   - EXApplication (5.3.1):
     - ExpoModulesCore
   - EXAV (13.4.1):
@@ -86,10 +77,6 @@ PODS:
     - expo-dev-menu/SafeAreaView
     - RCT-Folly (= 2021.07.22.00)
     - React-Core
-  - ExpoAdapterGoogleSignIn (10.0.1):
-    - ExpoModulesCore
-    - GoogleSignIn (~> 7.0)
-    - React-Core
   - ExpoBlur (12.4.1):
     - ExpoModulesCore
   - ExpoCrypto (12.4.1):
@@ -130,17 +117,6 @@ PODS:
     - ExpoModulesCore
     - RCT-Folly (= 2021.07.22.00)
     - React-Core
-  - EXStructuredHeaders (3.3.0)
-  - EXUpdates (0.18.19):
-    - ASN1Decoder (~> 1.8)
-    - EASClient
-    - EXManifests
-    - ExpoModulesCore
-    - EXStructuredHeaders
-    - EXUpdatesInterface
-    - RCT-Folly (= 2021.07.22.00)
-    - ReachabilitySwift
-    - React-Core
   - EXUpdatesInterface (0.10.1)
   - FBLazyVector (0.72.10)
   - FBReactNativeSpec (0.72.10):
@@ -152,14 +128,6 @@ PODS:
     - ReactCommon/turbomodule/core (= 0.72.10)
   - fmt (6.2.1)
   - glog (0.3.5)
-  - GoogleSignIn (7.1.0):
-    - AppAuth (< 2.0, >= 1.7.3)
-    - GTMAppAuth (< 5.0, >= 4.1.1)
-    - GTMSessionFetcher/Core (~> 3.3)
-  - GTMAppAuth (4.1.1):
-    - AppAuth/Core (~> 1.7)
-    - GTMSessionFetcher/Core (< 4.0, >= 3.3)
-  - GTMSessionFetcher/Core (3.5.0)
   - hermes-engine (0.72.10):
     - hermes-engine/Pre-built (= 0.72.10)
   - hermes-engine/Pre-built (0.72.10)
@@ -217,7 +185,6 @@ PODS:
     - FBLazyVector (= 0.72.10)
     - RCTRequired (= 0.72.10)
     - React-Core (= 0.72.10)
-  - ReachabilitySwift (5.2.4)
   - React (0.72.10):
     - React-Core (= 0.72.10)
     - React-Core/DevSupport (= 0.72.10)
@@ -506,8 +473,6 @@ PODS:
     - RCTTypeSafety
     - React-Core
     - ReactCommon/turbomodule/core
-  - react-native-slider (4.4.2):
-    - React-Core
   - react-native-webview (13.2.2):
     - React-Core
   - React-NativeModulesApple (0.72.10):
@@ -620,18 +585,11 @@ PODS:
     - React-jsi (= 0.72.10)
     - React-logger (= 0.72.10)
     - React-perflogger (= 0.72.10)
-  - RNAppleAuthentication (2.4.1):
-    - React-Core
   - RNCAsyncStorage (1.18.2):
-    - React-Core
-  - RNCPicker (2.4.10):
     - React-Core
   - RNDateTimePicker (7.2.0):
     - React-Core
   - RNGestureHandler (2.12.1):
-    - React-Core
-  - RNGoogleSignin (10.0.1):
-    - GoogleSignIn (~> 7.0)
     - React-Core
   - RNReanimated (3.3.0):
     - DoubleConversion
@@ -685,7 +643,6 @@ PODS:
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
-  - EASClient (from `../node_modules/expo-eas-client/ios`)
   - EXApplication (from `../node_modules/expo-application/ios`)
   - EXAV (from `../node_modules/expo-av/ios`)
   - EXConstants (from `../node_modules/expo-constants/ios`)
@@ -700,7 +657,6 @@ DEPENDENCIES:
   - expo-dev-launcher (from `../node_modules/expo-dev-launcher`)
   - expo-dev-menu (from `../node_modules/expo-dev-menu`)
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
-  - "ExpoAdapterGoogleSignIn (from `../node_modules/@react-native-google-signin/google-signin/expo/ios`)"
   - ExpoBlur (from `../node_modules/expo-blur/ios`)
   - ExpoCrypto (from `../node_modules/expo-crypto/ios`)
   - ExpoDevice (from `../node_modules/expo-device/ios`)
@@ -716,8 +672,6 @@ DEPENDENCIES:
   - ExpoSystemUI (from `../node_modules/expo-system-ui/ios`)
   - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
   - EXSplashScreen (from `../node_modules/expo-splash-screen/ios`)
-  - EXStructuredHeaders (from `../node_modules/expo-structured-headers/ios`)
-  - EXUpdates (from `../node_modules/expo-updates/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/React/FBReactNativeSpec`)
@@ -746,7 +700,6 @@ DEPENDENCIES:
   - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
-  - "react-native-slider (from `../node_modules/@react-native-community/slider`)"
   - react-native-webview (from `../node_modules/react-native-webview`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -765,12 +718,9 @@ DEPENDENCIES:
   - React-runtimescheduler (from `../node_modules/react-native/ReactCommon/react/renderer/runtimescheduler`)
   - React-utils (from `../node_modules/react-native/ReactCommon/react/utils`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
-  - "RNAppleAuthentication (from `../node_modules/@invertase/react-native-apple-authentication`)"
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
-  - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
-  - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
@@ -778,18 +728,12 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
-    - AppAuth
-    - ASN1Decoder
     - fmt
-    - GoogleSignIn
-    - GTMAppAuth
-    - GTMSessionFetcher
     - libaom
     - libavif
     - libevent
     - libvmaf
     - libwebp
-    - ReachabilitySwift
     - SDWebImage
     - SDWebImageAVIFCoder
     - SDWebImageSVGCoder
@@ -802,8 +746,6 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
-  EASClient:
-    :path: "../node_modules/expo-eas-client/ios"
   EXApplication:
     :path: "../node_modules/expo-application/ios"
   EXAV:
@@ -832,8 +774,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-dev-menu"
   expo-dev-menu-interface:
     :path: "../node_modules/expo-dev-menu-interface/ios"
-  ExpoAdapterGoogleSignIn:
-    :path: "../node_modules/@react-native-google-signin/google-signin/expo/ios"
   ExpoBlur:
     :path: "../node_modules/expo-blur/ios"
   ExpoCrypto:
@@ -864,10 +804,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-web-browser/ios"
   EXSplashScreen:
     :path: "../node_modules/expo-splash-screen/ios"
-  EXStructuredHeaders:
-    :path: "../node_modules/expo-structured-headers/ios"
-  EXUpdates:
-    :path: "../node_modules/expo-updates/ios"
   EXUpdatesInterface:
     :path: "../node_modules/expo-updates-interface/ios"
   FBLazyVector:
@@ -920,8 +856,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/netinfo"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
-  react-native-slider:
-    :path: "../node_modules/@react-native-community/slider"
   react-native-webview:
     :path: "../node_modules/react-native-webview"
   React-NativeModulesApple:
@@ -958,18 +892,12 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/utils"
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
-  RNAppleAuthentication:
-    :path: "../node_modules/@invertase/react-native-apple-authentication"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
-  RNCPicker:
-    :path: "../node_modules/@react-native-picker/picker"
   RNDateTimePicker:
     :path: "../node_modules/@react-native-community/datetimepicker"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
-  RNGoogleSignin:
-    :path: "../node_modules/@react-native-google-signin/google-signin"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -980,11 +908,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
-  ASN1Decoder: 91cb1d781b5a178ea7375b2f1519e2bdaaa4c427
   boost: 7dcd2de282d72e344012f7d6564d024930a6a440
   DoubleConversion: 5189b271737e1565bdce30deb4a08d647e3f5f54
-  EASClient: 847b2cedcc7f85900ebd54c53531b88aa41873d1
   EXApplication: aa0fc96f297b984950f2ca8d64c5a326403a0b29
   EXAV: d1f0ef70837bc21032001aa2c7894f86e2079ae1
   EXConstants: e7d8d1bec9a20242b4f92a9d66967c3904e0dcd0
@@ -999,7 +924,6 @@ SPEC CHECKSUMS:
   expo-dev-launcher: 02fc55fccaee6d2a97ee1c739a0e4946090e4b37
   expo-dev-menu: cc50dfc09a654cb5d74ac3482f0c49ca1268117d
   expo-dev-menu-interface: 22ea9639725e26dfebcb16ea631ddec660827374
-  ExpoAdapterGoogleSignIn: 20473f27920e1311a7fd3254e18ce7bab43178f7
   ExpoBlur: 98f8c3ead7693fa429e9e036957ee3527abedd5b
   ExpoCrypto: e0714ca676dc875ee772802cf20bcea6ec75c3e7
   ExpoDevice: 0333baa899c09213c1c6cb3d1a1b2061fb00594c
@@ -1015,16 +939,11 @@ SPEC CHECKSUMS:
   ExpoSystemUI: 8bd8809b1de7bf6a3a7f019306180a4b9b1c855a
   ExpoWebBrowser: 025c51f93c6a04beb169388877918de64ccae171
   EXSplashScreen: 84a7d9a965a2203e138528326fc3a511818e3fd1
-  EXStructuredHeaders: 324cc3130571d2696357fafd8be7fd9a0b5fdf6e
-  EXUpdates: 46fc021f5368f542dd0a409a1fd88543b76fb1e0
   EXUpdatesInterface: 82ed48d417cdcd376c12ca1c2ce390d35500bed6
   FBLazyVector: f91d538f197fa71a7d5b77ec2069d49550c0eb96
   FBReactNativeSpec: b13d1c23d6ed82d6b66aad7a253edf8ba76c4a4c
   fmt: ff9d55029c625d3757ed641535fd4a75fedc7ce9
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
-  GoogleSignIn: d4281ab6cf21542b1cfaff85c191f230b399d2db
-  GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
-  GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   hermes-engine: 90e4033deb00bee33330a9f15eff0f874bd82f6d
   libaom: 144606b1da4b5915a1054383c3a4459ccdb3c661
   libavif: 84bbb62fb232c3018d6f1bab79beea87e35de7b7
@@ -1037,7 +956,6 @@ SPEC CHECKSUMS:
   RCT-Folly: 8dc08ca5a393b48b1c523ab6220dfdcc0fe000ad
   RCTRequired: b4d3068afa6f52ec5260a8417053b1f1b421483d
   RCTTypeSafety: a4551b3d338c96435f63bf06d564055c1d3cc0ac
-  ReachabilitySwift: 32793e867593cfc1177f5d16491e3a197d2fccda
   React: 66caa2a8192a35d7ba466a5fdf5dc06ee4a5f6dd
   React-callinvoker: e5b55e46894c2dd1bcdc19d4f82b0f7f631d1237
   React-Codegen: f0f6ca43e08851b30eca007c1a975ad8ff74fcf8
@@ -1053,7 +971,6 @@ SPEC CHECKSUMS:
   react-native-get-random-values: 419569b6ed3d15bfb9b6781b2f2e058f8e8d2698
   react-native-netinfo: 66c9ac0d0ae92a57a9ed99ab8a75429740700c73
   react-native-safe-area-context: f998d7c030d9c89b0a745f8466f1f988478d822e
-  react-native-slider: 3051c537444d711b566d1e4d681c6cd35081ae6f
   react-native-webview: 65c16ff14c50a6c3d3cf2c6e4b60b47b413dbaf8
   React-NativeModulesApple: cb6d3c0f057dbd98545ddf1ec047f225d1dd9bf9
   React-perflogger: 43287389ea08993c300897a46f95cfac04bb6c1a
@@ -1072,12 +989,9 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 1f51ecd9eaa819eb66267ad66d8ac42d2173768f
   React-utils: a4a93189d0daacb5e8215250dc87907ff303744a
   ReactCommon: 5307bd88aa11a192d8a75717e66d7b630d9bc8bd
-  RNAppleAuthentication: c3dddf5918126c9aae85dc2e2ce9fb87835e9e04
   RNCAsyncStorage: d74501eeac0371fb58b3643704451a11b760af80
-  RNCPicker: 43a6a73efbb33d71640146070cc1720f1f75f5d6
   RNDateTimePicker: a3d13ed62d7d781dfe0ebc79d04340a4e6350e2b
   RNGestureHandler: 627182485becfd74f122c83f93cce2be20c2e8c8
-  RNGoogleSignin: 89877c73f0fbf6af2038fbdb7b73b5a25b8330cc
   RNReanimated: 66b73d76033ee90993b08707aea68416eae2ebc5
   RNScreens: 39db1910d2ea9ae885dcda43086818e9f8b714d0
   RNSVG: 67c430ac7a54043cac37f6bd7bc94f8e22d8a64a
@@ -1089,6 +1003,6 @@ SPEC CHECKSUMS:
   WebRTC-SDK: dff00a3892bc570b6014e046297782084071657e
   Yoga: d0003f849d2b5224c072cef6568b540d8bb15cd3
 
-PODFILE CHECKSUM: b3bbb4fcd4de4895321e43617bf8bf7883b512c9
+PODFILE CHECKSUM: 76da71b7c7c0fcc23543394ccadb954e98089b32
 
 COCOAPODS: 1.16.2
