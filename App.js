@@ -1,166 +1,190 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StatusBar } from 'expo-status-bar';
-import { registerGlobals } from '@livekit/react-native';
-import { Text } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 
-// 🚩 Import Feature Flags
-import { FEATURES, logEnabledFeatures, validateCriticalFeatures } from './config/features';
-
-// Import existing HB1 screens and components
-import HomeScreen from './app/index';
-import BibleScreen from './app/(tabs)/bible';
-import StudyScreen from './app/(tabs)/study/index';
-import ChatScreen from './app/(tabs)/chat';
-
-// Initialize LiveKit for React Native
-registerGlobals();
-
-// Initialize feature system
-if (__DEV__) {
-  logEnabledFeatures();
-  validateCriticalFeatures();
-}
+// Import feature flags system
+import { FEATURES, isFeatureEnabled, validateCriticalFeatures } from './config/features';
+import VoiceChat from './VoiceChat';
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
 
-// 📚 Bible Stack Navigator (for nested Bible screens)
-function BibleStack() {
+// Placeholder screens for HB1 features (currently disabled by feature flags)
+function HomeScreen() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="BibleMain" component={BibleScreen} />
-      {/* Future: BibleChapter, BibleVerse, BibleSearch screens */}
-    </Stack.Navigator>
+    <View style={styles.screen}>
+      <Text style={styles.title}>Heavenly Hub</Text>
+      <Text style={styles.subtitle}>Home Screen</Text>
+      <Text style={styles.status}>
+        {isFeatureEnabled('ENABLE_BIBLE_READER') ? '✅ Bible Reader Enabled' : '⏸️ Bible Reader Disabled'}
+      </Text>
+      <Text style={styles.status}>
+        {FEATURES.PRESERVE_LIVEKIT_VOICE ? '🎤 LiveKit Voice Protected' : '❌ LiveKit Not Protected'}
+      </Text>
+    </View>
   );
 }
 
-// 📖 Study Stack Navigator (for nested Study screens)  
-function StudyStack() {
+function BibleScreen() {
+  if (!isFeatureEnabled('ENABLE_BIBLE_READER')) {
+    return (
+      <View style={styles.screen}>
+        <Text style={styles.title}>Bible Reader</Text>
+        <Text style={styles.disabled}>Feature currently disabled</Text>
+        <Text style={styles.note}>Will be enabled during migration Phase 1</Text>
+      </View>
+    );
+  }
+  
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="StudyMain" component={StudyScreen} />
-      {/* Future: StudyEditor, StudyNotes, StudyMaterials screens */}
-    </Stack.Navigator>
+    <View style={styles.screen}>
+      <Text style={styles.title}>Bible Reader</Text>
+      <Text style={styles.subtitle}>Coming Soon</Text>
+    </View>
   );
 }
 
-// 🎤 Voice Chat Stack (for potential voice-related screens)
-function VoiceStack() {
+function StudyScreen() {
+  if (!isFeatureEnabled('ENABLE_STUDY_SYSTEM')) {
+    return (
+      <View style={styles.screen}>
+        <Text style={styles.title}>Study System</Text>
+        <Text style={styles.disabled}>Feature currently disabled</Text>
+        <Text style={styles.note}>Will be enabled during migration Phase 1</Text>
+      </View>
+    );
+  }
+  
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="VoiceChatMain" component={ChatScreen} />
-      {/* Future: VoiceSettings, VoiceHistory screens */}
-    </Stack.Navigator>
+    <View style={styles.screen}>
+      <Text style={styles.title}>Study System</Text>
+      <Text style={styles.subtitle}>Coming Soon</Text>
+    </View>
   );
 }
 
-// 🏠 Main Tab Navigator
-function MainTabs() {
+function ChatScreen() {
+  if (!isFeatureEnabled('ENABLE_AI_CHAT')) {
+    return (
+      <View style={styles.screen}>
+        <Text style={styles.title}>AI Chat</Text>
+        <Text style={styles.disabled}>Feature currently disabled</Text>
+        <Text style={styles.note}>Will be enabled during migration Phase 1</Text>
+      </View>
+    );
+  }
+  
   return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: '#3498db',
-        tabBarInactiveTintColor: 'gray',
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
-          height: 60,
-          paddingBottom: 5,
-          paddingTop: 5,
-        },
-      }}
-    >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: 20, color }}>🏠</Text>
-          ),
+    <View style={styles.screen}>
+      <Text style={styles.title}>AI Chat</Text>
+      <Text style={styles.subtitle}>Coming Soon</Text>
+    </View>
+  );
+}
+
+function VoiceTestScreen() {
+  return <VoiceChat />;
+}
+
+export default function App() {
+  // Validate critical features on app start
+  React.useEffect(() => {
+    const isValid = validateCriticalFeatures();
+    if (!isValid) {
+      console.error('🚨 CRITICAL: Feature flags validation failed! LiveKit may be at risk.');
+    }
+  }, []);
+
+  return (
+    <NavigationContainer>
+      <Tab.Navigator
+        screenOptions={{
+          tabBarActiveTintColor: '#007AFF',
+          tabBarInactiveTintColor: '#999',
+          headerStyle: {
+            backgroundColor: '#f8f9fa',
+          },
+          headerTintColor: '#333',
         }}
-      />
-      <Tab.Screen 
-        name="VoiceChat" 
-        component={VoiceStack}
-        options={{
-          tabBarLabel: 'Voice Chat',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ fontSize: 20, color }}>🎤</Text>
-          ),
-        }}
-      />
-      
-      {/* 🚩 Bible Reader - Feature Flag Controlled */}
-      {FEATURES.ENABLE_BIBLE_READER && (
+      >
+        <Tab.Screen 
+          name="Home" 
+          component={HomeScreen} 
+          options={{
+            title: 'Home',
+            tabBarIcon: () => <Text>🏠</Text>
+          }}
+        />
         <Tab.Screen 
           name="Bible" 
-          component={BibleStack}
+          component={BibleScreen}
           options={{
-            tabBarLabel: 'Bible',
-            tabBarIcon: ({ color, size }) => (
-              <Text style={{ fontSize: 20, color }}>📖</Text>
-            ),
+            title: 'Bible',
+            tabBarIcon: () => <Text>📖</Text>
           }}
         />
-      )}
-      
-      {/* 🚩 Study System - Feature Flag Controlled */}
-      {FEATURES.ENABLE_STUDY_SYSTEM && (
         <Tab.Screen 
           name="Study" 
-          component={StudyStack}
+          component={StudyScreen}
           options={{
-            tabBarLabel: 'Study',
-            tabBarIcon: ({ color, size }) => (
-              <Text style={{ fontSize: 20, color }}>📚</Text>
-            ),
+            title: 'Study',
+            tabBarIcon: () => <Text>📚</Text>
           }}
         />
-      )}
-    </Tab.Navigator>
+        <Tab.Screen 
+          name="Chat" 
+          component={ChatScreen}
+          options={{
+            title: 'Chat',
+            tabBarIcon: () => <Text>💬</Text>
+          }}
+        />
+        <Tab.Screen 
+          name="VoiceTest" 
+          component={VoiceTestScreen}
+          options={{
+            title: 'Voice Test',
+            tabBarIcon: () => <Text>🎤</Text>
+          }}
+        />
+      </Tab.Navigator>
+    </NavigationContainer>
   );
 }
 
-// 🏗️ Root Stack Navigator (for modals, auth screens, etc.)
-function RootStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen 
-        name="MainApp" 
-        component={MainTabs} 
-        options={{ headerShown: false }}
-      />
-      
-      {/* 🚩 Future: Modal screens for advanced features */}
-      {FEATURES.ENABLE_SUPABASE_AUTH && (
-        <Stack.Group screenOptions={{ presentation: 'modal' }}>
-          {/* Future: Login, Register, Profile modals */}
-        </Stack.Group>
-      )}
-      
-      {FEATURES.ENABLE_ADVANCED_UI && (
-        <Stack.Group screenOptions={{ presentation: 'modal' }}>
-          {/* Future: Settings, Help, About modals */}
-        </Stack.Group>
-      )}
-    </Stack.Navigator>
-  );
-}
-
-// 🎯 Main App Component
-export default function App() {
-  return (
-    <>
-      <StatusBar style="auto" />
-      <NavigationContainer>
-        <RootStack />
-      </NavigationContainer>
-    </>
-  );
-}
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 18,
+    marginBottom: 20,
+    color: '#666',
+  },
+  status: {
+    fontSize: 14,
+    marginVertical: 5,
+    color: '#007AFF',
+  },
+  disabled: {
+    fontSize: 16,
+    color: '#ff6b6b',
+    fontStyle: 'italic',
+    marginBottom: 10,
+  },
+  note: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+  },
+});
