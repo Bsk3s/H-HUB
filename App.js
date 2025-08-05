@@ -2,10 +2,14 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Import feature flags system
 import { FEATURES, isFeatureEnabled, validateCriticalFeatures } from './config/features';
 import VoiceChat from './VoiceChat';
+
+// Import AppHeader with theme system
+import AppHeader from './app/components/layout/AppHeader';
 
 const Tab = createBottomTabNavigator();
 
@@ -86,69 +90,75 @@ function VoiceTestScreen() {
   return <VoiceChat />;
 }
 
+// 🎯 Main App Component
 export default function App() {
   // Validate critical features on app start
-  React.useEffect(() => {
-    const isValid = validateCriticalFeatures();
-    if (!isValid) {
-      console.error('🚨 CRITICAL: Feature flags validation failed! LiveKit may be at risk.');
-    }
-  }, []);
+  if (__DEV__) {
+    validateCriticalFeatures();
+  }
 
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={{
-          tabBarActiveTintColor: '#007AFF',
-          tabBarInactiveTintColor: '#999',
-          headerStyle: {
-            backgroundColor: '#f8f9fa',
-          },
-          headerTintColor: '#333',
-        }}
-      >
-        <Tab.Screen 
-          name="Home" 
-          component={HomeScreen} 
-          options={{
-            title: 'Home',
-            tabBarIcon: () => <Text>🏠</Text>
+    <SafeAreaProvider>
+      <AppHeader />
+      <NavigationContainer>
+        <Tab.Navigator
+          screenOptions={{
+            tabBarActiveTintColor: '#3498db',
+            tabBarInactiveTintColor: 'gray',
+            headerShown: false,
+            tabBarStyle: {
+              backgroundColor: '#ffffff',
+              borderTopWidth: 1,
+              borderTopColor: '#e0e0e0',
+              height: 60,
+              paddingBottom: 5,
+              paddingTop: 5,
+            },
           }}
-        />
-        <Tab.Screen 
-          name="Bible" 
-          component={BibleScreen}
-          options={{
-            title: 'Bible',
-            tabBarIcon: () => <Text>📖</Text>
-          }}
-        />
-        <Tab.Screen 
-          name="Study" 
-          component={StudyScreen}
-          options={{
-            title: 'Study',
-            tabBarIcon: () => <Text>📚</Text>
-          }}
-        />
-        <Tab.Screen 
-          name="Chat" 
-          component={ChatScreen}
-          options={{
-            title: 'Chat',
-            tabBarIcon: () => <Text>💬</Text>
-          }}
-        />
-        <Tab.Screen 
-          name="VoiceTest" 
-          component={VoiceTestScreen}
-          options={{
-            title: 'Voice Test',
-            tabBarIcon: () => <Text>🎤</Text>
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+        >
+          <Tab.Screen 
+            name="Home" 
+            component={HomeScreen} 
+            options={{
+              title: 'Home',
+              tabBarIcon: () => <Text>🏠</Text>
+            }}
+          />
+          <Tab.Screen 
+            name="Bible" 
+            component={BibleScreen}
+            options={{
+              title: 'Bible',
+              tabBarIcon: () => <Text>��</Text>
+            }}
+          />
+          <Tab.Screen 
+            name="Study" 
+            component={StudyScreen}
+            options={{
+              title: 'Study',
+              tabBarIcon: () => <Text>📚</Text>
+            }}
+          />
+          <Tab.Screen 
+            name="Chat" 
+            component={ChatScreen}
+            options={{
+              title: 'Chat',
+              tabBarIcon: () => <Text>💬</Text>
+            }}
+          />
+          <Tab.Screen 
+            name="VoiceTest" 
+            component={VoiceTestScreen}
+            options={{
+              title: 'Voice Test',
+              tabBarIcon: () => <Text>🎤</Text>
+            }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
 
