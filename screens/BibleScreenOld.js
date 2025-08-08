@@ -51,7 +51,157 @@ const handleApiError = async (response, context) => {
   return response;
 };
 
-// Using imported functions from bibleService.js instead of duplicates
+// Using getBibleVersions from features/bible/services/bibleService.js
+
+const getBooks = async (bibleId) => {
+  try {
+    const response = await fetch(`${BASE_URL}/bibles/${bibleId}/books`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch books');
+    }
+
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error('Error fetching books:', error);
+    throw error;
+  }
+};
+
+const getChapters = async (bibleId, bookId) => {
+  try {
+    if (!bibleId || !bookId) {
+      throw new Error('Bible ID and Book ID are required');
+    }
+
+    const response = await fetch(`${BASE_URL}/bibles/${bibleId}/books/${bookId}/chapters`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to fetch chapters: ${errorData.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (!data || !data.data) {
+      throw new Error('Invalid response format from API');
+    }
+
+    // Process chapters to ensure they have all required fields and filter out intros
+    const processedChapters = data.data
+      .filter(chapter => {
+        const chapterNum = parseInt(chapter.number, 10);
+        return !isNaN(chapterNum) && chapter.number !== 'intro';
+      })
+      .map(chapter => ({
+        id: chapter.id,
+        bookId: chapter.bookId,
+        number: chapter.number,
+        reference: chapter.reference || `Chapter ${chapter.number}`
+      }));
+
+    // Sort chapters by number
+    processedChapters.sort((a, b) => {
+      const aNum = parseInt(a.number, 10);
+      const bNum = parseInt(b.number, 10);
+      return aNum - bNum;
+    });
+
+    return processedChapters;
+  } catch (error) {
+    console.error('Error fetching chapters:', error);
+    throw error;
+  }
+};
+
+const getChapterContent = async (bibleId, chapterId) => {
+  try {
+    // Skip intro chapters
+    if (chapterId.endsWith('.intro')) {
+      throw new Error('Cannot fetch content for intro chapters');
+    }
+
+    const response = await fetch(`${BASE_URL}/bibles/${bibleId}/chapters/${chapterId}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to fetch chapter content: ${errorData.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.data) {
+      throw new Error('Invalid response format from Bible API');
+    }
+
+    // Process the response to ensure we have the correct format
+    const processedData = {
+      id: data.data.id,
+      bookId: data.data.bookId,
+      number: data.data.number,
+      reference: data.data.reference,
+      verses: []
+    };
+
+    // Parse HTML content to extract verses
+    if (typeof data.data.content === 'string') {
+      const content = data.data.content;
+
+      // Find all verse spans in the content
+      const verses = [];
+
+      // First, clean up the HTML content
+      const cleanContent = content
+        .replace(/<\/?p>/g, ' ')  // Replace paragraph tags with spaces
+        .replace(/<br\s*\/?>/g, ' ')  // Replace line breaks with spaces
+        .replace(/\s+/g, ' ')  // Normalize whitespace
+        .trim();
+
+      // Split content by verse markers
+      const verseParts = cleanContent.split(/<span[^>]*data-number="(\d+)"[^>]*class="v"[^>]*>\d+<\/span>/);
+
+      for (let i = 1; i < verseParts.length; i += 2) {
+        const verseNum = parseInt(verseParts[i], 10);
+        let verseText = verseParts[i + 1] || '';
+
+        // Clean up the verse text
+        verseText = verseText
+          .replace(/<[^>]+>/g, ' ')  // Remove any remaining HTML tags
+          .replace(/¶/g, '')         // Remove pilcrow symbols
+          .replace(/\s+/g, ' ')      // Normalize whitespace
+          .trim();
+
+        if (verseNum && verseText) {
+          verses.push({
+            id: `${chapterId}.${verseNum}`,
+            number: verseNum,
+            text: verseText
+          });
+        }
+      }
+
+      processedData.verses = verses;
+    }
+
+    // Sort verses by number
+    processedData.verses.sort((a, b) => a.number - b.number);
+
+    return processedData;
+  } catch (error) {
+    console.error('Error fetching chapter content:', error);
+    throw error;
+  }
+};
 
 // SAFE HB1-style FloatingNavigation without Reanimated (virus-proof)
 const FloatingNavigation = ({ onPrevious, onNext }) => {
@@ -849,4 +999,3 @@ export default function BibleScreen() {
       <Bible />
     </VersesProvider>
   );
-}
