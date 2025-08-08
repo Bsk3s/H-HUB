@@ -4,6 +4,16 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Import professional Bible components
+import BibleHeader from '../features/bible/components/BibleHeader';
+import SearchBar from '../features/bible/components/SearchBar';
+import VerseItem from '../features/bible/components/VerseItem';
+import SelectionModal from '../features/bible/components/SelectionModal';
+import { VersesProvider, useVerses } from '../features/bible/contexts/VersesContext';
+import useBibleVersions from '../features/bible/hooks/useBibleVersions';
+import { getBibleVersions, getBooks, getChapters, getChapterContent } from '../features/bible/services/bibleService';
+import { ALL_BOOKS, getBookNameById } from '../features/bible/constants/books';
+
 // EXACT HB1 Bible Service API
 const API_KEY = 'c9afcb2ed06b4d336db834d2e03526cf';
 const BASE_URL = 'https://api.scripture.api.bible/v1';
@@ -996,4 +1006,10 @@ const Bible = () => {
   );
 };
 
-export default Bible;
+// Main BibleScreen component wrapped in context
+export default function BibleScreen() {
+  return (
+    <VersesProvider>
+      <Bible />
+    </VersesProvider>
+  );
