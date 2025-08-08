@@ -53,8 +53,11 @@ export function useLiveKitVoiceChat() {
     }
     
     initialized.current = true;
-    setIsInitialized(true);
-    console.log('🎯 LiveKit Voice Chat initialized and ready');
+    // Use setTimeout to avoid state update during render
+    setTimeout(() => {
+      setIsInitialized(true);
+      console.log('🎯 LiveKit Voice Chat initialized and ready');
+    }, 0);
   }, [user]);
 
   const startVoiceChat = async (character = 'Adina') => {

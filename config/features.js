@@ -73,11 +73,16 @@ export const FEATURES = {
  */
 export const isFeatureEnabled = (featureName) => {
   if (typeof featureName !== 'string') {
-    console.warn(`[Features] Invalid feature name: ${featureName}`);
+    console.warn(`[Features] Invalid feature name: ${featureName} (type: ${typeof featureName})`);
     return false;
   }
   
   const enabled = FEATURES[featureName];
+  
+  if (enabled === undefined) {
+    console.warn(`[Features] Unknown feature: ${featureName}`);
+    return false;
+  }
   
   if (FEATURES.ENABLE_FEATURE_LOGGING) {
     console.log(`[Features] ${featureName}: ${enabled ? 'ENABLED' : 'DISABLED'}`);
