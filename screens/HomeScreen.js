@@ -1,30 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 import { Star, Heart, BookOpen, Sun, Moon } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import dailyVerseService from '../src/services/dailyVerseService';
+import useActivities from '../src/hooks/useActivities';
 
 const { width } = Dimensions.get('window');
 
-// EXACT HB1 DailyVerse Component
+// Enhanced DailyVerse Component - Instagram-Ready Design
 const DailyVerse = () => {
   const [verse, setVerse] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isHearted, setIsHearted] = useState(false);
 
   useEffect(() => {
     const loadTodaysVerse = async () => {
       try {
         const todaysVerse = await dailyVerseService.getTodaysVerse();
         setVerse(todaysVerse);
+        
+        // Load heart state from storage
+        const heartKey = `verse_heart_${todaysVerse.day}`;
+        const heartState = await AsyncStorage.getItem(heartKey);
+        setIsHearted(heartState === 'true');
       } catch (error) {
         console.error('Error loading daily verse:', error);
         // Fallback verse
         setVerse({
           text: "And we have known and believed the love that God has for us. God is love, and he who abides in love abides in God, and God in him.",
           verse: "1 John 4:16",
-          version: "NKJV"
+          version: "NKJV",
+          theme: "Love"
         });
       } finally {
         setLoading(false);
@@ -34,24 +43,133 @@ const DailyVerse = () => {
     loadTodaysVerse();
   }, []);
 
+  // Consistent, classy color scheme - matches page aesthetic
+  const getThemeColors = () => {
+    return {
+      bg: '#f8fafc',      // Subtle gray-blue that matches the page
+      accent: '#475569',   // Elegant slate for accents
+      text: '#1e293b'      // Deep text for readability
+    };
+  };
+
+  const handleHeartPress = async () => {
+    if (!verse) return;
+    
+    const newHeartState = !isHearted;
+    setIsHearted(newHeartState);
+    
+    // Save heart state
+    const heartKey = `verse_heart_${verse.day}`;
+    await AsyncStorage.setItem(heartKey, newHeartState.toString());
+    
+    // Simple haptic feedback
+    if (newHeartState) {
+      console.log('❤️ User hearted today\'s verse');
+    }
+  };
+
   if (loading || !verse) {
+    const colors = getThemeColors();
     return (
-      <View style={{ backgroundColor: '#f0f8f0', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20 }}>
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#2d5d2d', marginBottom: 8 }}>Daily Verse</Text>
-        <Text style={{ fontSize: 18, color: '#9ca3af' }}>Loading today's verse...</Text>
+      <View style={{ 
+        backgroundColor: colors.bg, 
+        borderRadius: 16, 
+        paddingVertical: 24, 
+        paddingHorizontal: 24,
+        marginHorizontal: 4
+      }}>
+        <Text style={{ 
+          fontSize: 14, 
+          fontWeight: '600', 
+          color: colors.accent, 
+          marginBottom: 12,
+          letterSpacing: 0.5,
+          textTransform: 'uppercase'
+        }}>
+          Daily Verse
+        </Text>
+        <Text style={{ fontSize: 20, color: '#9ca3af', lineHeight: 28 }}>Loading today's verse...</Text>
       </View>
     );
   }
 
+  const colors = getThemeColors();
+
   return (
-    <View style={{ backgroundColor: '#f0f8f0', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20 }}>
-      <Text style={{ fontSize: 14, fontWeight: '600', color: '#2d5d2d', marginBottom: 8 }}>
+    <View style={{ 
+      backgroundColor: colors.bg, 
+      borderRadius: 16, 
+      paddingVertical: 24, 
+      paddingHorizontal: 24,
+      marginHorizontal: 4,
+      position: 'relative'
+    }}>
+      {/* Header */}
+      <Text style={{ 
+        fontSize: 14, 
+        fontWeight: '600', 
+        color: colors.accent, 
+        marginBottom: 16,
+        letterSpacing: 0.5,
+        textTransform: 'uppercase'
+      }}>
         Daily Verse
       </Text>
-      <Text style={{ fontSize: 18, color: '#1f2937', marginBottom: 8 }}>
+      
+      {/* Scripture Text - Hero Element */}
+      <Text style={{ 
+        fontSize: 22, 
+        color: colors.text, 
+        marginBottom: 16,
+        lineHeight: 32,
+        fontWeight: '400',
+        letterSpacing: -0.2
+      }}>
         "{verse.text}"
       </Text>
-      <Text style={{ fontSize: 14, color: '#6b7280' }}>{verse.verse} {verse.version}</Text>
+      
+      {/* Reference */}
+      <Text style={{ 
+        fontSize: 16, 
+        color: colors.accent,
+        fontWeight: '600',
+        marginBottom: 4
+      }}>
+        {verse.verse}
+      </Text>
+      
+      {/* Version */}
+      <Text style={{ 
+        fontSize: 12, 
+        color: colors.text,
+        opacity: 0.7,
+        fontWeight: '500'
+      }}>
+        {verse.version}
+      </Text>
+
+      {/* Heart Reaction - Beautiful deep red */}
+      <TouchableOpacity
+        onPress={handleHeartPress}
+        style={{
+          position: 'absolute',
+          bottom: 16,
+          right: 16,
+          padding: 8,
+          borderRadius: 20,
+          backgroundColor: isHearted ? '#b91c1c' : 'transparent'
+        }}
+        accessible={true}
+        accessibilityLabel={isHearted ? "Remove heart from verse" : "Heart this verse"}
+        accessibilityRole="button"
+      >
+        <Heart 
+          size={20} 
+          color={isHearted ? '#ffffff' : colors.accent} 
+          fill={isHearted ? '#b91c1c' : 'transparent'}
+          strokeWidth={2}
+        />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -691,49 +809,16 @@ const HomeScreen = () => {
   const [selectedRealStuffCard, setSelectedRealStuffCard] = useState(null);
   const [showRealStuffModal, setShowRealStuffModal] = useState(false);
   
-  // Simplified activities data (matching exact HB1 structure)
-  const activities = [
-    {
-      id: 1,
-      type: 'prayer',
-      title: 'Prayer Time',
-      progress: 11,
-      dailyGoal: 15,
-      streak: 0,
-      color: 'rose',
-      icon: 'Heart'
-    },
-    {
-      id: 2,
-      type: 'bible',
-      title: 'Bible Reading',
-      progress: 0,
-      dailyGoal: 1,
-      streak: 0,
-      color: 'blue',
-      icon: 'BookOpen'
-    },
-    {
-      id: 3,
-      type: 'devotional',
-      title: 'Devotional',
-      progress: 0,
-      dailyGoal: 20,
-      streak: 0,
-      color: 'amber',
-      icon: 'Sun'
-    },
-    {
-      id: 4,
-      type: 'evening-prayer',
-      title: 'Evening Prayer',
-      progress: 0,
-      dailyGoal: 10,
-      streak: 0,
-      color: 'indigo',
-      icon: 'Moon'
-    }
-  ];
+  // REAL ACTIVITY DATA from Supabase
+  const { 
+    activities, 
+    isLoading,
+    error,
+    setLiveDraft,
+    commitLiveDraft,
+    getCurrentProgress,
+    activityLogs
+  } = useActivities();
 
   // Simplified Real Stuff data (first few cards from EXACT HB1 data)
   const realStuffCards = [
@@ -809,10 +894,42 @@ const HomeScreen = () => {
     setShowRealStuffModal(true);
   };
 
-  const getCurrentProgress = (activityId) => {
-    const activity = activities.find(a => a.id === activityId);
-    return activity ? activity.progress : 0;
+  const selectedActivity = selectedActivityType 
+    ? activities.find(a => a.type === selectedActivityType)
+    : null;
+  
+  const handleCloseModal = () => {
+    if (selectedActivity) {
+      commitLiveDraft(selectedActivity.id);
+    }
+    setSelectedActivityType(null);
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+        <StatusBar style="dark" />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={{ marginTop: 16, fontSize: 16, color: '#6b7280' }}>Loading your activities...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+        <StatusBar style="dark" />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#dc2626', marginBottom: 8 }}>Unable to load activities</Text>
+          <Text style={{ fontSize: 14, color: '#6b7280', textAlign: 'center' }}>Please check your connection and try again.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const renderHomeContent = () => (
     <>
