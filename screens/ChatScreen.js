@@ -8,12 +8,38 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useLiveKitVoiceChat } from '../app/hooks/useLiveKitVoiceChat';
+import { useNavigation } from '@react-navigation/native';
+
+// Import beautiful HB1 chat components
+import AIToggle from '../app/components/chat/AIToggle';
+import VoiceVisualization from '../app/components/chat/VoiceVisualization';
+import QuickReplies from '../app/components/chat/QuickReplies';
+import VoiceControls from '../app/components/chat/VoiceControls';
+import useVoiceAnimation from '../app/components/chat/useVoiceAnimation';
 
 // Full LiveKit Voice Chat integrated into Chat tab
 const Chat = () => {
+  const navigation = useNavigation();
   const [logs, setLogs] = useState([]);
-  const [activeAI, setActiveAI] = useState('Adina');
+  const [activeAI, setActiveAI] = useState('adina'); // Lowercase for HB1 compatibility
   const scrollViewRef = useRef(null);
+  
+  // HB1 Voice Animation Hook
+  const {
+    blobScale,
+    glowOpacity,
+    particles,
+    particleOpacity,
+    particleScale
+  } = useVoiceAnimation(isListening);
+  
+  // Quick replies data (from HB1)
+  const quickReplies = [
+    "Tell me more",
+    "Give me a verse",
+    "How does this apply to me?",
+    "Explain further"
+  ];
   
   const {
     isListening,
@@ -24,9 +50,11 @@ const Chat = () => {
     isInitialized,
     isConnected,
     isActive,
+    voiceLevel,
     startVoiceChat,
     endVoiceChat,
     toggleListening,
+    sendTextMessage,
     clearError
   } = useLiveKitVoiceChat();
 
@@ -71,132 +99,155 @@ const Chat = () => {
   };
 
   const handleStartChat = () => {
-    console.log(`🚀 Starting conversation with ${activeAI}...`);
+    const aiName = activeAI.charAt(0).toUpperCase() + activeAI.slice(1); // Capitalize for display
+    console.log(`🚀 Starting conversation with ${aiName}...`);
     startVoiceChat(activeAI);
+  };
+
+  // Smart voice handler - seamless flow
+  const handleVoiceAction = () => {
+    if (!isConnected && !isActive) {
+      // First press: Start voice chat with selected AI
+      const aiName = activeAI.charAt(0).toUpperCase() + activeAI.slice(1);
+      console.log(`🚀 Initiating voice chat with ${aiName}...`);
+      startVoiceChat(activeAI);
+    } else if (isConnected && isActive) {
+      // Session active: Toggle listening
+      toggleListening();
+    }
+  };
+
+  // Quick reply handler - send text prompts to AI
+  const handleQuickReply = async (replyText) => {
+    try {
+      if (!isConnected) {
+        console.log('⚠️ Not connected - starting voice chat first');
+        // Start voice chat if not connected
+        await startVoiceChat(activeAI);
+        // Wait a moment for connection, then send message
+        setTimeout(() => {
+          sendTextMessage(replyText);
+        }, 2000);
+      } else {
+        // Already connected - send immediately
+        console.log(`💬 Sending quick reply: "${replyText}"`);
+        await sendTextMessage(replyText);
+      }
+    } catch (error) {
+      console.error('❌ Error sending quick reply:', error);
+    }
   };
 
   const connectionStatus = isConnected ? 'Connected' : 'Disconnected';
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* AI Selection Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Voice Chat</Text>
+      {/* AI Selection Header - Clean and minimal */}
+      <View style={styles.floatingHeader}>
+        {/* Bible Quick Access */}
+        <TouchableOpacity 
+          style={styles.bibleButton}
+          onPress={() => navigation.navigate('Bible')}
+          accessible={true}
+          accessibilityLabel="Open Bible"
+          accessibilityRole="button"
+        >
+          <Text style={styles.bibleIcon}>📖</Text>
+        </TouchableOpacity>
+
+        {/* Beautiful HB1 AI Toggle */}
+        <AIToggle 
+          activeAI={activeAI} 
+          setActiveAI={setActiveAI} 
+        />
         
-        {/* AI Toggle */}
-        <View style={styles.aiToggle}>
-          <TouchableOpacity
-            onPress={() => setActiveAI('Adina')}
-            style={[
-              styles.aiButton,
-              activeAI === 'Adina' && styles.aiButtonActive
-            ]}
-          >
-            <Text style={[
-              styles.aiButtonText,
-              activeAI === 'Adina' && styles.aiButtonTextActive
-            ]}>
-              Adina 🕊️
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setActiveAI('Rafa')}
-            style={[
-              styles.aiButton,
-              activeAI === 'Rafa' && styles.aiButtonActive
-            ]}
-          >
-            <Text style={[
-              styles.aiButtonText,
-              activeAI === 'Rafa' && styles.aiButtonTextActive
-            ]}>
-              Rafa 🌟
-            </Text>
-          </TouchableOpacity>
-        </View>
-        
-        {/* Connection Status */}
+        {/* Connection Status - More spacing */}
         <View style={styles.statusContainer}>
           <View style={[styles.statusDot, isConnected ? styles.connected : styles.disconnected]} />
           <Text style={styles.statusText}>{connectionStatus}</Text>
-        </View>
-      </View>
-
-      {/* Ready to Talk Section */}
-      {!isActive && (
-        <View style={styles.readySection}>
-          <Text style={styles.readyIcon}>💭</Text>
-          <Text style={styles.readyText}>Ready to talk with {activeAI}</Text>
-        </View>
-      )}
-
-      {/* Active Chat Section */}
-      {isActive && (
-        <View style={styles.activeSection}>
-          <Text style={styles.activeIcon}>🗣️</Text>
-          <Text style={styles.activeText}>Chatting with {activeAI}</Text>
-          <TouchableOpacity
-            style={[styles.button, styles.endButton]}
-            onPress={endVoiceChat}
-          >
-            <Text style={styles.buttonText}>End Conversation</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Debug Log Section */}
-      <View style={styles.logSection}>
-        <Text style={styles.logHeader}>Voice Chat Log:</Text>
-        <ScrollView 
-          ref={scrollViewRef}
-          style={styles.logScrollView}
-          showsVerticalScrollIndicator={false}
-        >
-          {logs.map((log) => (
-            <Text key={log.id} style={styles.logEntry}>
-              {log.timestamp} {log.message}
-            </Text>
-          ))}
-          {logs.length === 0 && (
-            <Text style={styles.noLogsText}>No logs yet...</Text>
+          
+          {/* Agent Connected Indicator */}
+          {isConnected && (
+            <View style={styles.agentIndicator}>
+              <View style={[
+                styles.agentDot,
+                activeAI === 'adina' ? styles.adinaAgent : styles.rafaAgent
+              ]} />
+              <Text style={[
+                styles.agentText,
+                activeAI === 'adina' ? styles.adinaText : styles.rafaText
+              ]}>
+                {activeAI.charAt(0).toUpperCase() + activeAI.slice(1)} ready
+              </Text>
+            </View>
           )}
-        </ScrollView>
+        </View>
       </View>
 
-      {/* Action Buttons */}
-      <View style={styles.buttonContainer}>
-        {!isActive && (
-          <TouchableOpacity
-            style={[styles.button, styles.primaryButton]}
-            onPress={handleStartChat}
-            disabled={!isInitialized}
-          >
-            <Text style={styles.buttonIcon}>🎤</Text>
-            <Text style={styles.buttonText}>Talk with {activeAI}</Text>
-          </TouchableOpacity>
+      {/* UNIFIED VOICE EXPERIENCE - Everything flows together */}
+      <View style={styles.unifiedVoiceArea}>
+        {/* Voice Visualization - Integrated */}
+        <VoiceVisualization
+          activeAI={activeAI}
+          isListening={isListening}
+          isConnected={isConnected}
+          isPlaying={isPlaying}
+          isProcessing={isProcessing}
+          voiceLevel={voiceLevel}
+          blobScale={blobScale}
+          glowOpacity={glowOpacity}
+          particles={particles}
+          particleOpacity={particleOpacity}
+          particleScale={particleScale}
+        />
+
+      </View>
+
+      {/* Quick Replies - COMPLETELY SEPARATE from blob */}
+      <View style={styles.quickRepliesSection}>
+        <QuickReplies 
+          activeAI={activeAI}
+          quickReplies={quickReplies}
+          onQuickReply={handleQuickReply}
+        />
+      </View>
+
+      {/* Status Message - Between replies and controls */}
+      <View style={styles.statusSection}>
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity 
+              style={styles.dismissButton}
+              onPress={clearError}
+              accessible={true}
+              accessibilityLabel="Dismiss error"
+            >
+              <Text style={styles.dismissText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Text style={styles.statusMessageText}>
+            {isConnected ? '✨ Ready for conversation' : 
+             isActive ? '🔄 Connecting...' : '🎤 Tap mic to start'}
+          </Text>
         )}
-        
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
-          onPress={checkBackend}
-        >
-          <Text style={styles.buttonIcon}>🔄</Text>
-          <Text style={styles.buttonText}>Check Backend</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.button, styles.clearButton]}
-          onPress={clearLogs}
-        >
-          <Text style={styles.buttonIcon}>🗑️</Text>
-          <Text style={styles.buttonText}>Clear Logs</Text>
-        </TouchableOpacity>
       </View>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Pure voice conversations • No switching mid-chat</Text>
-      </View>
+      {/* Voice Controls - Bottom fixed */}
+      <VoiceControls
+        isListening={isListening}
+        setIsListening={handleVoiceAction}
+        activeAI={activeAI}
+        showQuickReplies={true}
+        setShowQuickReplies={() => {}}
+        isConnected={isConnected}
+        isSessionActive={isActive}
+        conversationState={isConnected ? 'connected' : isActive ? 'connecting' : 'disconnected'}
+        onEndConversation={endVoiceChat}
+      />
+
+
     </SafeAreaView>
   );
 };
@@ -204,19 +255,86 @@ const Chat = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fafbfc',
   },
-  header: {
+  floatingHeader: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    paddingTop: 40, // More padding at top
+    backgroundColor: 'transparent',
+    position: 'relative',
+    zIndex: 10,
+  },
+  bibleButton: {
+    position: 'absolute',
+    top: 20,
+    right: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f8fafc', // Match the page tone instead of pure white
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  bibleIcon: {
+    fontSize: 20,
+  },
+  unifiedVoiceArea: {
+    flex: 1,
+    position: 'relative',
+    // Everything flows together here
+  },
+  quickRepliesSection: {
+    paddingVertical: 16,
     paddingHorizontal: 20,
-    backgroundColor: 'white',
+    // Natural flow - no overlapping!
+  },
+  statusSection: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    // Clean separation
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fee2e2',
+    borderColor: '#fca5a5',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    maxWidth: '90%',
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#dc2626',
+    textAlign: 'center',
+  },
+  dismissButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  dismissText: {
+    fontSize: 16,
+    color: '#dc2626',
+    fontWeight: 'bold',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
-    color: '#2c3e50',
-    marginBottom: 16,
+    color: '#1e293b',
+    marginBottom: 20,
+    letterSpacing: -0.5,
   },
   aiToggle: {
     flexDirection: 'row',
@@ -243,8 +361,40 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   statusContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginTop: 20,  // More spacing from toggle
+  },
+  agentIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  agentDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  adinaAgent: {
+    backgroundColor: '#ec4899',
+  },
+  rafaAgent: {
+    backgroundColor: '#3b82f6',
+  },
+  agentText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  adinaText: {
+    color: '#ec4899',
+  },
+  rafaText: {
+    color: '#3b82f6',
   },
   statusDot: {
     width: 12,
@@ -262,6 +412,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7f8c8d',
     fontWeight: '500',
+  },
+  voiceVisualizationContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    minHeight: 320,
+    width: '100%', // Ensure full width ✅
   },
   readySection: {
     backgroundColor: 'white',
@@ -316,11 +474,36 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
   },
+  logSectionMinimized: {
+    backgroundColor: '#f8f9fa',
+    marginHorizontal: 20,
+    marginVertical: 5,
+    borderRadius: 8,
+    padding: 10,
+  },
+  statusMessage: {
+    marginHorizontal: 20,
+    marginVertical: 16,
+    alignItems: 'center',
+  },
+  statusMessageText: {
+    fontSize: 17,
+    color: '#64748b',
+    fontWeight: '500',
+    opacity: 0.9,
+    letterSpacing: 0.2,
+  },
   logHeader: {
     fontSize: 16,
     fontWeight: '600',
     color: '#2c3e50',
     marginBottom: 10,
+  },
+  logHeaderMinimized: {
+    fontSize: 12,
+    color: '#95a5a6',
+    textAlign: 'center',
+    fontFamily: 'Courier New',
   },
   logScrollView: {
     flex: 1,

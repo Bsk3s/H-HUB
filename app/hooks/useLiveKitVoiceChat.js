@@ -104,12 +104,18 @@ export function useLiveKitVoiceChat() {
         setIsListening(true);
       });
 
-      newRoom.on('disconnected', () => {
-        console.log('📞 Disconnected from room');
+      newRoom.on('disconnected', (reason) => {
+        console.log('📞 Disconnected from room:', reason);
         setConversationState('idle');
         setIsConnected(false);
         setIsListening(false);
         setIsActive(false);
+        
+        // Check if disconnection was unexpected (not user-initiated)
+        if (reason && !reason.includes('CLIENT_INITIATED')) {
+          console.log('🔄 Unexpected disconnection, showing reconnect option...');
+          setError(`Connection lost. Tap mic to reconnect.`);
+        }
       });
 
       newRoom.on('participantConnected', (participant) => {
@@ -162,9 +168,26 @@ export function useLiveKitVoiceChat() {
       
     } catch (error) {
       console.log(`❌ Failed to start voice chat: ${error.message}`);
-      setError(`Failed to connect: ${error.message}`);
       setConversationState('error');
       setIsActive(false);
+      setIsConnected(false);
+      setIsListening(false);
+      
+      // Provide user-friendly error messages
+      let userMessage = 'Connection failed. ';
+      if (error.message.includes('network') || error.message.includes('timeout')) {
+        userMessage += 'Check your internet connection and try again.';
+      } else if (error.message.includes('permission') || error.message.includes('microphone')) {
+        userMessage += 'Microphone permission required.';
+      } else if (error.message.includes('token') || error.message.includes('auth')) {
+        userMessage += 'Authentication failed. Try restarting the app.';
+      } else if (error.message.includes('HTTP error! status: 500')) {
+        userMessage += 'Server temporarily unavailable. Try again in a moment.';
+      } else {
+        userMessage += 'Tap mic to try again.';
+      }
+      
+      setError(userMessage);
     }
   };
 
@@ -214,6 +237,34 @@ export function useLiveKitVoiceChat() {
     }
   };
 
+  const sendTextMessage = async (message) => {
+    try {
+      if (!room || !isConnected) {
+        throw new Error('Not connected to voice chat');
+      }
+      
+      console.log(`💬 Sending text message: "${message}"`);
+      
+      // Send data message through LiveKit room
+      const data = JSON.stringify({
+        type: 'text_message',
+        content: message,
+        timestamp: Date.now()
+      });
+      
+      await room.localParticipant.publishData(
+        new TextEncoder().encode(data), 
+        { reliable: true }
+      );
+      
+      console.log('✅ Text message sent successfully');
+      
+    } catch (error) {
+      console.error('❌ Error sending text message:', error);
+      setError(`Failed to send message: ${error.message}`);
+    }
+  };
+
   const clearError = () => {
     setError(null);
   };
@@ -239,6 +290,7 @@ export function useLiveKitVoiceChat() {
     startVoiceChat,
     endVoiceChat,
     toggleListening,
+    sendTextMessage,
     clearError
   };
 }

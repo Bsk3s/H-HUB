@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-const QuickReplies = ({ activeAI, quickReplies }) => {
+const QuickReplies = ({ activeAI, quickReplies, onQuickReply }) => {
   return (
     <View 
       style={styles.container}
@@ -19,6 +19,7 @@ const QuickReplies = ({ activeAI, quickReplies }) => {
                 ? styles.replyButtonAdina 
                 : styles.replyButtonRafa
             ]}
+            onPress={() => onQuickReply && onQuickReply(reply)}
             accessible={true}
             accessibilityLabel={`Quick reply: ${reply}`}
             accessibilityRole="menuitem"
@@ -49,25 +50,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   replyButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    margin: 4,
-    borderRadius: 20,
+    paddingHorizontal: 12,  // Smaller
+    paddingVertical: 8,     // Smaller  
+    margin: 4,              // Tighter
+    borderRadius: 18,       // Smaller
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },  // Lighter shadow
+    shadowOpacity: 0.05,    // Lighter
+    shadowRadius: 2,        // Smaller
+    elevation: 2,           // Lower
   },
   replyButtonAdina: {
-    backgroundColor: '#fdf2f8',
+    backgroundColor: '#f8fafc', // Match page tone
+    borderWidth: 1,
+    borderColor: '#f9a8d4',
   },
   replyButtonRafa: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#f8fafc', // Match page tone  
+    borderWidth: 1,
+    borderColor: '#93c5fd',
   },
   replyText: {
-    fontSize: 14,
+    fontSize: 13,    // Smaller text
+    fontWeight: '500', // Lighter weight
+    textAlign: 'center',
   },
   replyTextAdina: {
-    color: '#dc2626',
+    color: '#ec4899',
   },
   replyTextRafa: {
-    color: '#2563eb',
+    color: '#3b82f6',
   },
 });
 
