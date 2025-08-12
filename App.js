@@ -15,32 +15,66 @@ import BibleScreen from './screens/BibleScreen';
 import ChatScreen from './screens/ChatScreen';
 import StudyScreen from './screens/StudyScreen';
 
+// Import story screens
+import StoriesScreen from './screens/StoriesScreen';
+import StoryDetailScreen from './screens/StoryDetailScreen';
+
 // Import top navigation (now the main navigation)
 import TopTabBar from './components/navigation/TopTabBar';
 
 // 🎯 MAIN APP - Top Navigation Central Hub
 function App() {
   const [activeTab, setActiveTab] = React.useState('Home');
+  const [currentScreen, setCurrentScreen] = React.useState('Home');
+  const [screenParams, setScreenParams] = React.useState({});
 
   // Validate critical features on startup
   React.useEffect(() => {
     validateCriticalFeatures();
   }, []);
 
+  // Navigation functions
+  const navigate = (screenName, params = {}) => {
+    setCurrentScreen(screenName);
+    setScreenParams(params);
+  };
+
+  const goBack = () => {
+    setCurrentScreen(activeTab); // Go back to current tab
+    setScreenParams({});
+  };
+
+  // Navigation object for screens
+  const navigation = {
+    navigate,
+    goBack,
+  };
+
   // Central navigation orchestrator
   const renderScreen = () => {
-    switch (activeTab) {
+    switch (currentScreen) {
       case 'Chat':
-        return <ChatScreen />;
+        return <ChatScreen navigation={navigation} />;
       case 'Home':
-        return <HomeScreen />;
+        return <HomeScreen navigation={navigation} />;
       case 'Bible':
-        return <BibleScreen />;
+        return <BibleScreen navigation={navigation} />;
       case 'Study':
-        return <StudyScreen />;
+        return <StudyScreen navigation={navigation} />;
+      case 'Stories':
+        return <StoriesScreen navigation={navigation} />;
+      case 'StoryDetail':
+        return <StoryDetailScreen navigation={navigation} route={{ params: screenParams }} />;
       default:
-        return <HomeScreen />;
+        return <HomeScreen navigation={navigation} />;
     }
+  };
+
+  // Handle tab changes
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setCurrentScreen(tab);
+    setScreenParams({});
   };
 
   return (
@@ -48,17 +82,18 @@ function App() {
       <NavigationContainer>
         <View style={{ flex: 1, backgroundColor: '#fff' }}>
           {/* App Header - consistent across all screens */}
-          <AppHeader />
+          {(currentScreen === 'Home' || currentScreen === 'Chat' || currentScreen === 'Bible' || currentScreen === 'Study') && <AppHeader />}
           
-          {/* Central Navigation Hub - Top Tabs */}
-          <TopTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+          {/* Central Navigation Hub - Top Tabs (only show on main screens) */}
+          {(currentScreen === 'Home' || currentScreen === 'Chat' || currentScreen === 'Bible' || currentScreen === 'Study') && (
+            <TopTabBar activeTab={activeTab} onTabChange={handleTabChange} />
+          )}
           
-          {/* Main Content Area - Controlled by Top Navigation */}
+          {/* Main Content Area - Controlled by Navigation */}
           <View style={{ flex: 1 }}>
             {renderScreen()}
           </View>
           
-
         </View>
       </NavigationContainer>
     </SafeAreaProvider>

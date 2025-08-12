@@ -3,13 +3,12 @@ import { View, Text, TouchableOpacity, Modal, Pressable, StyleSheet } from 'reac
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Menu, LogOut, User, Settings, HelpCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { colors, spacing, typography } from '../../../theme';
 
 /**
  * AppHeader Component
  * 
  * Main navigation header with "Heavenly Hub" branding and hamburger menu.
- * Preserves exact HB1 design using theme system instead of Tailwind.
+ * Simple styling without external dependencies.
  */
 const AppHeader = () => {
   const insets = useSafeAreaInsets();
@@ -72,7 +71,7 @@ const AppHeader = () => {
         <View style={styles.headerContent}>
           <Text style={styles.title}>Heavenly Hub</Text>
           <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
-            <Menu size={24} color={colors.gray700} />
+            <Menu size={24} color="#374151" />
           </TouchableOpacity>
         </View>
       </View>
@@ -95,7 +94,7 @@ const AppHeader = () => {
                   index !== menuItems.length - 1 && styles.menuItemBorder
                 ]}
               >
-                <item.icon size={20} color={colors.gray700} style={styles.menuIcon} />
+                <item.icon size={20} color="#374151" style={styles.menuIcon} />
                 <Text style={[
                   styles.menuItemText,
                   item.destructive && styles.destructiveText
@@ -112,85 +111,84 @@ const AppHeader = () => {
 };
 
 /**
- * Styles using theme system
- * Preserves exact HB1 design with consistent spacing/colors
+ * Simple styles without external theme dependencies
  */
 const styles = StyleSheet.create({
-  // Header styles (matches: bg-white px-4 py-4 border-b border-gray-100)
+  // Header styles
   header: {
-    backgroundColor: colors.white,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray100,
+    borderBottomColor: '#f3f4f6',
   },
   
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,  // px-4 equivalent
-    paddingVertical: spacing.lg,    // py-4 equivalent
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   
-  // Title styles (matches: text-2xl font-semibold text-gray-900)
+  // Title styles
   title: {
-    fontSize: typography.fontSize['2xl'],
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.gray900,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#111827',
   },
   
   menuButton: {
-    // No specific Tailwind equivalent - clean touch target
+    // Clean touch target
   },
   
-  // Modal styles (matches HB1 design)
+  // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
-    paddingTop: 80,  // pt-20 equivalent
-    paddingRight: spacing.lg,
+    paddingTop: 80,
+    paddingRight: 16,
   },
   
-  // Modal content (matches: bg-white rounded-lg shadow-lg min-w-[200px])
+  // Modal content
   modalContent: {
-    backgroundColor: colors.white,
-    borderRadius: 12,  // rounded-lg
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
     minWidth: 200,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
-    elevation: 10,  // Android shadow
+    elevation: 10,
   },
   
-  // Menu item styles (matches: flex-row items-center px-4 py-3)
+  // Menu item styles
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray100,
+    borderBottomColor: '#f3f4f6',
   },
   
   menuIcon: {
-    marginRight: spacing.md,  // Spacing between icon and text
+    marginRight: 12,
   },
   
-  // Menu text (matches: text-gray-700 font-medium ml-3)
+  // Menu text
   menuItemText: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.medium,
-    color: colors.gray700,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
   },
   
   destructiveText: {
-    color: colors.destructive,
+    color: '#dc2626',
   },
 });
 
-export default AppHeader; 
+export default AppHeader;

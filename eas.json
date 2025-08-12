@@ -16,17 +16,6 @@
         "EXPO_NO_CAPABILITY_SYNC": "1"
       }
     },
-    "production-dev": {
-      "distribution": "internal",
-      "ios": {
-        "buildConfiguration": "Release",
-        "simulator": false,
-        "image": "macos-sonoma-14.4-xcode-15.3"
-      },
-      "env": {
-        "EXPO_NO_CAPABILITY_SYNC": "1"
-      }
-    },
     "preview": {
       "distribution": "internal"
     },

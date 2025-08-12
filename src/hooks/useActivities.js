@@ -9,7 +9,8 @@ import {
 } from '../services/activities';
 import { startOfDay, formatISO, isToday, subDays, parse, differenceInDays, format } from 'date-fns';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../auth/supabase-client';
+import { useIsFocused } from '@react-navigation/native';
+// import { useAuth } from '../auth/context'; // Commented out for demo mode
 
 // --- Constants ---
 const CACHE_KEY = 'activities_cache';
@@ -177,60 +178,29 @@ const updateActivityInCache = async (updatedActivity) => {
     }
 };
 
-// Simple hook to get current user - replace with your auth context if you have one
-const useCurrentUser = () => {
-    const [user, setUser] = useState(null);
-    
-    useEffect(() => {
-        // DEMO MODE: Use fake user data
-        console.log('🔧 DEMO MODE: Using fake user for activity rings testing');
-        setUser({ 
-            id: 'demo-user-12345',
-            email: 'demo@test.com' 
-        });
-        
-        // PRODUCTION CODE (commented out until .env is set up):
-        /*
-        // Get current session
-        const getUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setUser(session?.user || null);
-        };
-        
-        getUser();
-        
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            setUser(session?.user || null);
-        });
-        
-        return () => subscription.unsubscribe();
-        */
-    }, []);
-    
-    return { user };
-};
-
 // --- Main Hook ---
 const useActivities = () => {
-    const { user } = useCurrentUser(); // Replace with your auth context
+    // DEMO MODE: Use mock user for testing full HB1 experience
+    const user = { id: 'demo-user-12345', email: 'demo@test.com' };
+    // const { user } = useAuth(); // Uncomment when auth is ready
     const [userActivities, setUserActivities] = useState([]);
     const [activityLogs, setActivityLogs] = useState([]);
     const [liveUpdate, setLiveUpdate] = useState(null); // { id, progress }
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const isFocused = useIsFocused();
     // Headless state for real-time UI updates
     const [liveDraft, setLiveDraft] = useState({});
 
     const fetchAndProcessData = useCallback(async () => {
         if (!user?.id) return;
-      setIsLoading(true);
+        setIsLoading(true);
         try {
-            // DEMO MODE: Use fake data instead of Supabase
+            // DEMO MODE: Use mock data for testing
             if (user.id === 'demo-user-12345') {
-                console.log('🔧 DEMO MODE: Loading fake activity data');
+                console.log('🔧 DEMO MODE: Loading mock HB1 activity data');
                 
-                // Create demo activities
+                // Create realistic demo activities matching HB1 structure
                 const demoActivities = [
                     {
                         id: 'demo-activity-1',
@@ -241,7 +211,7 @@ const useActivities = () => {
                         read_chapters: null
                     },
                     {
-                        id: 'demo-activity-2',
+                        id: 'demo-activity-2', 
                         user_id: 'demo-user-12345',
                         type: 'bible',
                         daily_goal: 1,
@@ -250,7 +220,7 @@ const useActivities = () => {
                     },
                     {
                         id: 'demo-activity-3',
-                        user_id: 'demo-user-12345',
+                        user_id: 'demo-user-12345', 
                         type: 'devotional',
                         daily_goal: 20,
                         created_at: new Date().toISOString(),
@@ -259,53 +229,101 @@ const useActivities = () => {
                     {
                         id: 'demo-activity-4',
                         user_id: 'demo-user-12345',
-                        type: 'evening-prayer',
+                        type: 'evening-prayer', 
                         daily_goal: 10,
                         created_at: new Date().toISOString(),
                         read_chapters: null
                     }
                 ];
                 
-                // Create demo logs (some progress for testing)
-                const demoLogs = [
-                    {
-                        id: 'demo-log-1',
-                        user_id: 'demo-user-12345',
-                        user_activity_id: 'demo-activity-1',
-                        progress: 5,
-                        created_at: new Date().toISOString(),
-                        date: new Date().toISOString().split('T')[0]
+                // Create realistic demo logs for the past week
+                const today = new Date();
+                const demoLogs = [];
+                
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dateString = date.toISOString().split('T')[0];
+                    
+                    // Add varying progress for realistic demo
+                    if (i < 5) {
+                        demoLogs.push({
+                            id: `demo-log-prayer-${i}`,
+                            user_id: 'demo-user-12345',
+                            user_activity_id: 'demo-activity-1',
+                            progress: i === 0 ? 5 : i === 1 ? 15 : i === 2 ? 10 : 15,
+                            created_at: date.toISOString(),
+                            date: dateString,
+                            activityType: 'prayer'
+                        });
                     }
-                ];
+                    
+                    if (i < 4) {
+                        demoLogs.push({
+                            id: `demo-log-bible-${i}`,
+                            user_id: 'demo-user-12345',
+                            user_activity_id: 'demo-activity-2', 
+                            progress: i === 0 ? 0 : 1,
+                            created_at: date.toISOString(),
+                            date: dateString,
+                            activityType: 'bible'
+                        });
+                    }
+                    
+                    if (i < 6) {
+                        demoLogs.push({
+                            id: `demo-log-devotional-${i}`,
+                            user_id: 'demo-user-12345',
+                            user_activity_id: 'demo-activity-3',
+                            progress: i === 0 ? 0 : i === 1 ? 20 : i === 2 ? 15 : 20,
+                            created_at: date.toISOString(),
+                            date: dateString,
+                            activityType: 'devotional'
+                        });
+                    }
+                    
+                    if (i < 3) {
+                        demoLogs.push({
+                            id: `demo-log-evening-${i}`,
+                            user_id: 'demo-user-12345',
+                            user_activity_id: 'demo-activity-4',
+                            progress: i === 0 ? 0 : 10,
+                            created_at: date.toISOString(),
+                            date: dateString,
+                            activityType: 'evening-prayer'
+                        });
+                    }
+                }
                 
                 setUserActivities(demoActivities);
                 setActivityLogs(demoLogs);
-                
-                console.log('🔧 DEMO: Loaded', demoActivities.length, 'activities');
-            } else {
-                // PRODUCTION CODE:
-                let activities = await fetchUserActivities(user.id);
-                if (activities.length === 0) {
-                  await ensureActivitiesExist(user.id, []);
-                  activities = await fetchUserActivities(user.id);
-                }
-                const logs = await fetchActivityLogs(user.id);
-                setUserActivities(activities);
-                setActivityLogs(logs);
+                console.log('🔧 DEMO: Loaded', demoActivities.length, 'activities and', demoLogs.length, 'logs');
+                setIsLoading(false);
+                return;
             }
-      } catch (e) {
+            
+            // Real Supabase mode (commented out for demo)
+            let activities = await fetchUserActivities(user.id);
+            if (activities.length === 0) {
+                await ensureActivitiesExist(user.id, []);
+                activities = await fetchUserActivities(user.id);
+            }
+            const logs = await fetchActivityLogs(user.id);
+            setUserActivities(activities);
+            setActivityLogs(logs);
+        } catch (e) {
             console.error("Failed to fetch activity data:", e);
-        setError(e);
-      } finally {
-        setIsLoading(false);
-      }
+            setError(e);
+        } finally {
+            setIsLoading(false);
+        }
     }, [user?.id]);
 
     useEffect(() => {
-        if (user?.id) {
+        if (isFocused && user?.id) {
             fetchAndProcessData();
         }
-    }, [user?.id, fetchAndProcessData]);
+    }, [isFocused, user?.id, fetchAndProcessData]);
 
     const activities = useMemo(() => {
         // First process the logs to add activityType
@@ -379,15 +397,6 @@ const useActivities = () => {
         if (!activity) return;
 
         try {
-            // DEMO MODE: Just simulate saving
-            if (user.id === 'demo-user-12345') {
-                console.log('🔧 DEMO MODE: Simulating activity log save:', { activityId, data });
-                await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-                await fetchAndProcessData(); // Refresh demo data
-                return;
-            }
-            
-            // PRODUCTION CODE:
             if (activity.type === 'bible' && data.read_chapters) {
                 await upsertUserActivity({
                     id: activityId,
@@ -424,39 +433,31 @@ const useActivities = () => {
         console.log('💾 Original activity type:', originalActivity.type);
 
         try {
-            // DEMO MODE: Just simulate saving
-            if (user.id === 'demo-user-12345') {
-                console.log('🔧 DEMO MODE: Simulating draft commit:', { activityId, draft });
-                await new Promise(resolve => setTimeout(resolve, 300)); // Simulate save delay
-                await fetchAndProcessData(); // Refresh demo data
-            } else {
-                // PRODUCTION CODE:
-                if (originalActivity.type === 'bible' && draft.read_chapters) {
-                     await upsertUserActivity({
-                        id: activityId,
-                        read_chapters: draft.read_chapters,
-                        last_read_book: draft.last_read_book,
-                        last_read_chapter: draft.last_read_chapter,
-                        last_logged_at: new Date().toISOString(),
+            if (originalActivity.type === 'bible' && draft.read_chapters) {
+                 await upsertUserActivity({
+                    id: activityId,
+                    read_chapters: draft.read_chapters,
+                    last_read_book: draft.last_read_book,
+                    last_read_chapter: draft.last_read_chapter,
+                    last_logged_at: new Date().toISOString(),
+                });
+            } else if (draft.progress !== undefined) {
+                // Save the absolute progress value, not just positive differences
+                const initialProgress = draft.initialProgress || 0;
+                const progressDifference = draft.progress - initialProgress;
+                
+                // Only save if there's actually a change (positive or negative)
+                if (progressDifference !== 0) {
+                    await logActivityProgress({
+                        user_activity_id: activityId,
+                        user_id: user.id,
+                        progress: progressDifference,
+                        created_at: new Date().toISOString(),
                     });
-                } else if (draft.progress !== undefined) {
-                    // Save the absolute progress value, not just positive differences
-                    const initialProgress = draft.initialProgress || 0;
-                    const progressDifference = draft.progress - initialProgress;
-                    
-                    // Only save if there's actually a change (positive or negative)
-                    if (progressDifference !== 0) {
-                        await logActivityProgress({
-                            user_activity_id: activityId,
-                            user_id: user.id,
-                            progress: progressDifference,
-                            created_at: new Date().toISOString(),
-                        });
-                    }
                 }
-                 // Refresh data after commit
-                await fetchAndProcessData();
             }
+             // Refresh data after commit
+            await fetchAndProcessData();
         } catch (error) {
             console.error('Error committing live draft:', error);
             // Optionally revert UI state or show error to user
@@ -512,4 +513,4 @@ const useActivities = () => {
   };
 };
 
-export default useActivities;
+export default useActivities; 

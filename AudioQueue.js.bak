@@ -1,0 +1,270 @@
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
+import AudioOutputManager from './AudioOutputManager';
+
+class AudioQueue {
+  constructor() {
+    this.queue = [];
+    this.isPlaying = false;
+    this.currentSound = null;
+    this.onComplete = null;
+    this.onChunkStarted = null;
+    this.tempFiles = []; // Track temporary audio files for cleanup
+  }
+
+  // Add chunk and play if not already playing
+  async addChunk(base64Audio, chunkId = null) {
+    try {
+      console.log('🔍 DEBUG: AudioQueue.addChunk called with chunkId:', chunkId);
+      console.log('🔍 DEBUG: Audio data length:', base64Audio?.length || 'undefined');
+      console.log('🔍 DEBUG: Currently playing?', this.isPlaying);
+      
+      const audioFile = await this.convertBase64ToAudio(base64Audio, chunkId);
+      console.log('🔍 DEBUG: convertBase64ToAudio returned:', audioFile);
+      
+      const audioItem = {
+        uri: audioFile,
+        chunkId: chunkId
+      };
+      
+      if (!this.isPlaying) {
+        console.log('🔍 DEBUG: Not playing, calling playAudio immediately');
+        await this.playAudio(audioItem);
+      } else {
+        console.log('🔍 DEBUG: Currently playing, adding to queue. Queue length:', this.queue.length);
+        this.queue.push(audioItem);
+      }
+    } catch (error) {
+      console.error('❌ Error adding audio chunk:', error);
+    }
+  }
+
+  // Convert base64 WAV to playable audio file using Expo FileSystem
+  async convertBase64ToAudio(base64String, chunkId = null) {
+    try {
+      console.log('🔍 DEBUG: convertBase64ToAudio called with chunkId:', chunkId);
+      console.log('🔍 DEBUG: Base64 string length:', base64String?.length || 'undefined');
+      
+      // Remove data URL prefix if present
+      const cleanBase64 = base64String.replace(/^data:audio\/[a-z]+;base64,/, '');
+      console.log('🔍 DEBUG: Clean base64 length:', cleanBase64.length);
+      
+      // Create a unique filename
+      // 🚨 TEST FILE SYSTEM ACCESS
+      console.log('🔍 AUDIO: Testing document directory access...');
+      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);
+      console.log('🔍 AUDIO: Document directory info:', dirInfo);
+      const filename = `audio_chunk_${chunkId || Date.now()}_${Math.random().toString(36).substr(2, 9)}.wav`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+      console.log('🔍 DEBUG: Creating file at:', fileUri);
+      
+      // Write base64 audio data to file
+      await FileSystem.writeAsStringAsync(fileUri, cleanBase64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      
+      console.log('🔍 DEBUG: File write completed, checking if file exists...');
+      
+      if (!fileInfo.exists) {
+        throw new Error('File was not created successfully');
+      }
+      
+      if (fileInfo.size === 0) {
+        throw new Error('File was created but is empty');
+      }
+      
+      console.log('🔍 AUDIO: File size:', fileInfo.size, 'bytes');
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      console.log('🔍 DEBUG: File info:', fileInfo);
+      
+      // Track temp file for cleanup
+      this.tempFiles.push(fileUri);
+      
+      console.log('✅ Audio file created:', fileUri);
+      return fileUri;
+      
+    } catch (error) {
+      console.error("🚨 AUDIO FILE CREATION ERROR:", error);
+      console.error("🚨 This is likely why audio is silent!");
+      throw error;
+    }
+  }
+
+  // Play audio chunk
+  async playAudio(audioItem) {
+    try {
+      console.log('🔍 DEBUG: playAudio called with audioItem:', audioItem);
+      this.isPlaying = true;
+      
+      // Force speaker output for iOS before playing audio
+      if (AudioOutputManager.isAvailable()) {
+        try {
+          await AudioOutputManager.forceSpeakerOutput();
+          console.log('🔊 Forced speaker output before audio playback');
+        } catch (error) {
+          console.warn('⚠️ Could not force speaker output:', error);
+        }
+      }
+      
+      // Notify that chunk started playing
+      if (this.onChunkStarted && audioItem.chunkId) {
+        console.log('🔍 DEBUG: Calling onChunkStarted for chunk:', audioItem.chunkId);
+        this.onChunkStarted(audioItem.chunkId);
+      }
+      
+      console.log('🔍 DEBUG: About to call Audio.Sound.createAsync with URI:', audioItem.uri);
+      console.log('🔍 DEBUG: File exists check before playback...');
+      const fileExists = await FileSystem.getInfoAsync(audioItem.uri);
+      console.log('🔍 DEBUG: File exists result:', fileExists);
+      
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioItem.uri },
+        { shouldPlay: true }
+      );
+      
+      console.log('🔍 DEBUG: Audio.Sound.createAsync SUCCESS! Sound object:', !!sound);
+      this.currentSound = sound;
+      
+      // When audio finishes, play next chunk
+      sound.setOnPlaybackStatusUpdate((status) => {
+        console.log("🔍 PLAYBACK: Status update:", {
+          isLoaded: status.isLoaded,
+          isPlaying: status.isPlaying,
+          didJustFinish: status.didJustFinish,
+          error: status.error
+        });
+        
+        if (status.error) {
+          console.error("🚨 PLAYBACK ERROR in status update:", status.error);
+        }
+        console.log('🔍 DEBUG: Playback status update:', status.isLoaded, status.isPlaying, status.didJustFinish);
+        if (status.didJustFinish) {
+          this.playNext();
+        }
+      });
+      
+      console.log('🎵 AUDIO PLAYBACK STARTED SUCCESSFULLY for chunk:', audioItem.chunkId);
+      
+    } catch (error) {
+      console.error("🚨 AUDIO PLAYBACK ERROR:", error);
+      console.error("🚨 Error name:", error.name);
+      console.error("🚨 Error message:", error.message);
+      console.error("🚨 Error code:", error.code);
+      console.error("🚨 THIS IS THE AUDIO PLAYBACK FAILURE! ☝️");
+      console.error('🔍 DEBUG: playAudio failed at Audio.Sound.createAsync');
+      this.isPlaying = false;
+      
+      // Try to play next chunk if available
+      if (this.queue.length > 0) {
+        this.playNext();
+      }
+    }
+  }
+
+  // Play next chunk in queue
+  async playNext() {
+    try {
+      // Clean up current sound and its temp file
+      if (this.currentSound) {
+        const currentUri = this.currentSound._uri || null;
+        await this.currentSound.unloadAsync();
+        this.currentSound = null;
+        
+        // Delete the temp file
+        if (currentUri) {
+          await this.cleanupTempFile(currentUri);
+        }
+      }
+      
+      if (this.queue.length > 0) {
+        const nextAudio = this.queue.shift();
+        await this.playAudio(nextAudio);
+      } else {
+        this.isPlaying = false;
+        
+        // Notify completion
+        if (this.onComplete) {
+          this.onComplete();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error playing next chunk:', error);
+      this.isPlaying = false;
+    }
+  }
+
+  // Clean up a temporary audio file
+  async cleanupTempFile(fileUri) {
+    try {
+      const fileExists = await FileSystem.getInfoAsync(fileUri);
+      if (fileExists.exists) {
+        await FileSystem.deleteAsync(fileUri);
+        console.log('🗑️ Cleaned up temp audio file:', fileUri);
+      }
+      
+      // Remove from tracking array
+      this.tempFiles = this.tempFiles.filter(file => file !== fileUri);
+      
+    } catch (error) {
+      console.error('❌ Error cleaning up temp file:', error);
+    }
+  }
+
+  // Stop all playback and clear queue
+  async stop() {
+    try {
+      this.queue = [];
+      this.isPlaying = false;
+      
+      if (this.currentSound) {
+        await this.currentSound.stopAsync();
+        await this.currentSound.unloadAsync();
+        this.currentSound = null;
+      }
+      
+      // Clean up all temp files
+      await this.cleanupAllTempFiles();
+      
+    } catch (error) {
+      console.error('❌ Error stopping audio queue:', error);
+    }
+  }
+
+  // Clean up all temporary files
+  async cleanupAllTempFiles() {
+    try {
+      for (const fileUri of this.tempFiles) {
+        const fileExists = await FileSystem.getInfoAsync(fileUri);
+        if (fileExists.exists) {
+          await FileSystem.deleteAsync(fileUri);
+          console.log('🗑️ Cleaned up temp audio file:', fileUri);
+        }
+      }
+      this.tempFiles = [];
+    } catch (error) {
+      console.error('❌ Error cleaning up temp files:', error);
+    }
+  }
+
+  // Check if currently playing
+  isCurrentlyPlaying() {
+    return this.isPlaying;
+  }
+
+  // Get queue length
+  getQueueLength() {
+    return this.queue.length;
+  }
+
+  // Set completion callback
+  setOnComplete(callback) {
+    this.onComplete = callback;
+  }
+
+  // Set chunk started callback
+  setOnChunkStarted(callback) {
+    this.onChunkStarted = callback;
+  }
+}
+
+export default AudioQueue; 
