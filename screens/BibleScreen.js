@@ -13,6 +13,7 @@ import { VersesProvider, useVerses } from '../features/bible/contexts/VersesCont
 import useBibleVersions from '../features/bible/hooks/useBibleVersions';
 import { getBibleVersions, getBooks, getChapters, getChapterContent } from '../features/bible/services/bibleService';
 import { ALL_BOOKS, getBookNameById } from '../features/bible/constants/books';
+import { parseScriptureReference, createBookId, createChapterId, getContextRange } from '../utils/scriptureParser';
 
 // EXACT HB1 Bible Service API
 const API_KEY = 'c9afcb2ed06b4d336db834d2e03526cf';
@@ -119,26 +120,41 @@ const FloatingNavigation = ({ onPrevious, onNext }) => {
   );
 };
 
+// Clean, user-friendly Bible version display names
+const FRIENDLY_VERSION_NAMES = {
+  'engKJV': { name: 'King James Version', abbrev: 'KJV', description: 'Traditional English translation' },
+  'WEB': { name: 'World English Bible', abbrev: 'WEB', description: 'Modern English, public domain' },
+  'ASV': { name: 'American Standard Version', abbrev: 'ASV', description: 'Classic American translation' },
+  'LSV': { name: 'Literal Standard Version', abbrev: 'LSV', description: 'Word-for-word accuracy' },
+  'FBV': { name: 'Free Bible Version', abbrev: 'FBV', description: 'Contemporary English' }
+};
+
 // EXACT HB1 Bible Component
-const Bible = () => {
+const Bible = ({ route }) => {
   const scrollViewRef = useRef(null);
+  
+  // Use the enhanced useBibleVersions hook
+  const { 
+    versions, 
+    categorizedVersions, 
+    loading: versionsLoading, 
+    error: versionsError,
+    currentVersion: hookCurrentVersion,
+    changeVersion 
+  } = useBibleVersions();
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
   // Bible data state
-  const [versions, setVersions] = useState([]);
-  const [categorizedVersions, setCategorizedVersions] = useState({
-    priorityEnglish: [],
-    otherEnglish: [],
-    otherLanguages: {}
-  });
   const [books, setBooks] = useState([]);
   const [chapters, setChapters] = useState([]);
-  const [currentVersion, setCurrentVersion] = useState(null);
   const [currentBook, setCurrentBook] = useState(null);
   const [currentChapter, setCurrentChapter] = useState(null);
   const [verses, setVerses] = useState([]);
+  
+  // Use hook's current version
+  const currentVersion = hookCurrentVersion;
   
   // UI state
   const [showVersionModal, setShowVersionModal] = useState(false);
@@ -147,98 +163,80 @@ const Bible = () => {
   const [selectedBookInModal, setSelectedBookInModal] = useState(null);
   const [alphabeticalOrder, setAlphabeticalOrder] = useState(false);
   
-  // Load Bible versions on mount
-  useEffect(() => {
-    loadBibleVersions();
-  }, []);
+  // Navigation state for verse targeting
+  const [targetVerse, setTargetVerse] = useState(null);
+  const [highlightedVerse, setHighlightedVerse] = useState(null);
+  const [pendingScriptureRef, setPendingScriptureRef] = useState(null);
+  
+  // Scroll state for floating navigation
+  const [showFloatingNav, setShowFloatingNav] = useState(false);
 
-  const loadBibleVersions = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const data = await getBibleVersions();
-      setVersions(data);
-
-      // EXACT HB1 CATEGORIZATION LOGIC
-      const PRIORITY_VERSIONS = ['KJV', 'NKJV', 'ESV', 'NIV', 'NLT', 'NASB', 'CSB'];
-      
-      // Categorize versions exactly like HB1
-      const priority = [];
-      const otherEnglish = [];
-      const otherLanguages = {};
-
-      data.forEach(version => {
-        // Check if it's an English version
-        if (version.language?.id === 'eng') {
-          // Check if it's a priority version
-          if (PRIORITY_VERSIONS.includes(version.abbreviation)) {
-            priority.push(version);
-          } else {
-            otherEnglish.push(version);
-          }
-        } else {
-          // Group by language
-          const langName = version.language?.name || 'Other';
-          if (!otherLanguages[langName]) {
-            otherLanguages[langName] = [];
-          }
-          otherLanguages[langName].push(version);
-        }
-      });
-
-      // Sort priority versions according to PRIORITY_VERSIONS order
-      priority.sort((a, b) => {
-        return PRIORITY_VERSIONS.indexOf(a.abbreviation) - PRIORITY_VERSIONS.indexOf(b.abbreviation);
-      });
-
-      // Sort other English versions alphabetically
-      otherEnglish.sort((a, b) => a.name.localeCompare(b.name));
-
-      // Sort other languages alphabetically
-      Object.keys(otherLanguages).forEach(lang => {
-        otherLanguages[lang].sort((a, b) => a.name.localeCompare(b.name));
-      });
-
-      setCategorizedVersions({
-        priorityEnglish: priority,
-        otherEnglish,
-        otherLanguages
-      });
-      
-      const savedVersionId = await AsyncStorage.getItem('currentBibleVersionId');
-      let defaultVersion = null;
-      
-      if (savedVersionId) {
-        const savedVersion = data.find(v => v.id === savedVersionId);
-        if (savedVersion && savedVersion.language?.id === 'eng') {
-          defaultVersion = savedVersion;
-        }
+  // Get clean, unique core versions for modal display
+  const getCoreVersionsForDisplay = () => {
+    if (!categorizedVersions.priorityEnglish) return [];
+    
+    const uniqueVersions = [];
+    const seenAbbreviations = new Set();
+    
+    // Filter out duplicates and only show versions in our friendly names list
+    categorizedVersions.priorityEnglish.forEach(version => {
+      const abbrev = version.abbreviation || version.nameLocal || version.name;
+      if (FRIENDLY_VERSION_NAMES[abbrev] && !seenAbbreviations.has(abbrev)) {
+        seenAbbreviations.add(abbrev);
+        uniqueVersions.push({
+          ...version,
+          friendlyName: FRIENDLY_VERSION_NAMES[abbrev].name,
+          friendlyAbbrev: FRIENDLY_VERSION_NAMES[abbrev].abbrev,
+          description: FRIENDLY_VERSION_NAMES[abbrev].description
+        });
       }
-      
-      if (!defaultVersion) {
-        // Default to KJV or first priority version if available
-        defaultVersion = priority.find(v => v.abbreviation === 'KJV') ||
-          priority[0] ||
-          otherEnglish[0] ||
-          data[0];
-      }
-      
-      if (defaultVersion) {
-        setCurrentVersion(defaultVersion);
-        await AsyncStorage.setItem('currentBibleVersionId', defaultVersion.id);
-        await loadBooks(defaultVersion.id);
-      } else {
-        setError('No English Bible version could be found. Please check your connection or try resetting.');
-      }
-      
-      setIsLoading(false);
-    } catch (err) {
-      console.error('Error loading Bible versions:', err);
-      setError('Failed to load Bible versions. Please check your internet connection.');
-      setIsLoading(false);
-    }
+    });
+    
+
+    return uniqueVersions;
   };
+  
+  // Load books when current version changes (from hook)
+  useEffect(() => {
+    if (currentVersion && !versionsLoading) {
+      loadBooks(currentVersion.id);
+    }
+  }, [currentVersion, versionsLoading]);
+
+  // Handle verse navigation from route params
+  useEffect(() => {
+
+    
+    const scriptureRef = route?.params?.scriptureRef;
+    
+    if (scriptureRef) {
+      if (currentVersion && books.length > 0) {
+        console.log('📖 Ready to navigate! Attempting navigation to:', scriptureRef);
+        navigateToScripture(scriptureRef);
+        setPendingScriptureRef(null); // Clear pending since we're navigating
+      } else {
+        console.log('📖 Not ready yet, queuing scripture reference:', scriptureRef);
+        setPendingScriptureRef(scriptureRef); // Queue for later
+      }
+    }
+  }, [route?.params?.scriptureRef, currentVersion, books]);
+
+  // Process pending scripture navigation when books become available
+  useEffect(() => {
+    if (pendingScriptureRef && currentVersion && books.length > 0) {
+      console.log('📖 Processing pending scripture navigation:', pendingScriptureRef);
+      navigateToScripture(pendingScriptureRef);
+      setPendingScriptureRef(null);
+    }
+  }, [pendingScriptureRef, currentVersion, books]);
+
+  // Update loading state based on hook
+  useEffect(() => {
+    setIsLoading(versionsLoading);
+    if (versionsError) {
+      setError(versionsError);
+    }
+  }, [versionsLoading, versionsError]);
 
   const loadBooks = async (versionId) => {
     try {
@@ -262,21 +260,40 @@ const Bible = () => {
     }
   };
 
-  const loadChapters = async (versionId, bookId) => {
+  const loadChapters = async (versionId, bookId, targetChapterNumber = null) => {
     try {
       const data = await getChapters(versionId, bookId);
       setChapters(data);
       
-      // Try to load saved chapter or use first available
-      const savedChapterId = await AsyncStorage.getItem('currentChapterId');
-      const defaultChapter = savedChapterId ? 
-        data.find(c => c.id === savedChapterId) : 
-        data[0];
+      let selectedChapter;
       
-      if (defaultChapter) {
-        setCurrentChapter(defaultChapter);
-        await AsyncStorage.setItem('currentChapterId', defaultChapter.id);
-        await loadVerses(versionId, defaultChapter.id);
+      if (targetChapterNumber) {
+        // Look for the target chapter number
+        selectedChapter = data.find(c => {
+          // Extract chapter number from ID (e.g., "de4e12af7f28f599-02.PSA.46" -> 46)
+          const chapterNum = parseInt(c.id.split('.').pop());
+          return chapterNum === targetChapterNumber;
+        });
+        console.log('📖 Target chapter found:', selectedChapter);
+      }
+      
+      if (!selectedChapter) {
+        // Fall back to saved chapter or first available
+        const savedChapterId = await AsyncStorage.getItem('currentChapterId');
+        selectedChapter = savedChapterId ? 
+          data.find(c => c.id === savedChapterId) : 
+          data[0];
+      }
+      
+      if (selectedChapter) {
+        setCurrentChapter(selectedChapter);
+        await AsyncStorage.setItem('currentChapterId', selectedChapter.id);
+        await loadVerses(versionId, selectedChapter.id);
+        
+        // Mark loading as complete after initial setup
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
       }
     } catch (err) {
       console.error('Error loading chapters:', err);
@@ -287,8 +304,18 @@ const Bible = () => {
   const loadVerses = async (versionId, chapterId) => {
     try {
       const data = await getChapterContent(versionId, chapterId);
+      
       if (data && data.verses) {
         setVerses(data.verses);
+        
+        // If we have a target verse, scroll to it after verses load
+        if (targetVerse) {
+          setTimeout(() => {
+            scrollToTargetVerse();
+          }, 500); // Give time for verses to render
+        }
+      } else {
+        setVerses([]);
       }
     } catch (err) {
       console.error('Error loading verses:', err);
@@ -296,11 +323,34 @@ const Bible = () => {
     }
   };
 
+  // Handle scroll events to show/hide floating navigation
+  const handleScroll = (event) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    
+    // Show floating nav after scrolling down 100 pixels
+    const shouldShow = currentScrollY > 100;
+    if (shouldShow !== showFloatingNav) {
+      setShowFloatingNav(shouldShow);
+    }
+  };
+
+  const scrollToTargetVerse = () => {
+    if (scrollViewRef.current && targetVerse) {
+      // Since verses are rendered in order, we can calculate approximate position
+      // Each verse is roughly 60px high (this is an estimate)
+      const estimatedPosition = (targetVerse - 1) * 60;
+      scrollViewRef.current.scrollTo({ 
+        y: estimatedPosition, 
+        animated: true 
+      });
+    }
+  };
+
   const handleVersionSelect = async (version) => {
-    setCurrentVersion(version);
+    console.log('📖 🔄 Changing to version:', version.abbreviation || version.name);
+    await changeVersion(version.id);
     setShowVersionModal(false);
-    await AsyncStorage.setItem('currentBibleVersionId', version.id);
-    await loadBooks(version.id);
+    // Books will be loaded automatically via useEffect when currentVersion changes
   };
 
   const resetToEnglishVersion = async () => {
@@ -353,6 +403,71 @@ const Bible = () => {
     setShowChapterModal(false);
     await AsyncStorage.setItem('currentChapterId', chapter.id);
     await loadVerses(currentVersion.id, chapter.id);
+  };
+
+  // Navigate to a specific scripture reference
+  const navigateToScripture = async (scriptureRef) => {
+    try {
+      console.log('📖 🎯 Starting navigation to scripture:', scriptureRef);
+      
+      // Check prerequisites
+      if (!currentVersion) {
+        console.error('📖 ❌ No current version available');
+        return;
+      }
+      
+      if (!books || books.length === 0) {
+        console.error('📖 ❌ No books available');
+        return;
+      }
+      
+      const parsed = parseScriptureReference(scriptureRef);
+      if (!parsed) {
+        console.error('📖 ❌ Could not parse scripture reference:', scriptureRef);
+        return;
+      }
+
+      console.log('📖 ✅ Parsed scripture successfully:', parsed);
+
+      // Find the book in our books array
+      // Book IDs from API are simple abbreviations like "PSA", "MAT", etc.
+      const targetBook = books.find(book => {
+        // Direct ID match (e.g., "PSA" === "PSA")
+        const idMatches = book.id === parsed.book;
+        // Also check name for extra safety
+        const nameMatches = book.name.toLowerCase().includes(parsed.bookName);
+        console.log(`📖 Checking book: ${book.id} (${book.name}) - ID matches ${parsed.book}? ${idMatches} - Name matches? ${nameMatches}`);
+        return idMatches || nameMatches;
+      });
+
+      if (!targetBook) {
+        console.error('📖 ❌ Book not found for:', parsed.book);
+        console.error('📖 📚 All available books:', books.map(b => ({ id: b.id, name: b.name })));
+        console.error('📖 🔍 Looking for book ID:', parsed.book, 'or name containing:', parsed.bookName);
+        return;
+      }
+
+      console.log('📖 ✅ Found target book:', { id: targetBook.id, name: targetBook.name });
+
+      // Set the target verse for highlighting
+      setTargetVerse(parsed.startVerse);
+      setHighlightedVerse(parsed.startVerse);
+
+      // Load the book and chapter
+      console.log('📖 🔄 Loading book and chapter...');
+      setCurrentBook(targetBook);
+      await AsyncStorage.setItem('currentBookId', targetBook.id);
+      
+      // Load chapters for this book with target chapter
+      await loadChapters(currentVersion.id, targetBook.id, parsed.chapter);
+      
+      console.log('📖 ✅ Scripture navigation completed successfully!');
+
+    } catch (error) {
+      console.error('📖 ❌ Error navigating to scripture:', error);
+      // Reset pending scripture on error
+      setPendingScriptureRef(null);
+    }
   };
 
   // Navigation functions for floating buttons
@@ -421,18 +536,18 @@ const Bible = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: 'white' }}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color="#4B5563" />
           <Text style={{ color: '#6B7280', marginTop: 8 }}>Loading Bible...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: 'white' }}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <Ionicons name="warning-outline" size={48} color="#EF4444" />
           <Text style={{ color: '#DC2626', fontSize: 18, fontWeight: '600', marginTop: 16, textAlign: 'center' }}>
@@ -460,12 +575,12 @@ const Bible = () => {
             </TouchableOpacity>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+    <View style={{ flex: 1, backgroundColor: 'white' }}>
       <StatusBar style="dark" />
       
       {/* Warning banner for non-English versions */}
@@ -529,8 +644,10 @@ const Bible = () => {
       {/* Content */}
       <ScrollView 
         ref={scrollViewRef}
-        style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 24 }}
-        contentContainerStyle={{ paddingBottom: 100 }} // Add padding for floating buttons
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 120 }} // Extend to edges, padding for floating buttons
+        onScroll={handleScroll}
+        scrollEventThrottle={16} // Smooth scroll tracking
       >
         {currentChapter && (
           <Text style={{ fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 24 }}>
@@ -539,7 +656,7 @@ const Bible = () => {
         )}
         
         {verses.length > 0 ? (
-          <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+          <View>
             {verses.map((verse) => (
               <Text 
                 key={verse.id} 
@@ -558,18 +675,24 @@ const Bible = () => {
           </View>
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
-            <Text style={{ color: '#6B7280', textAlign: 'center' }}>
-              Select a Bible version, book, and chapter to begin reading.
+            <Text style={{ color: '#6B7280', textAlign: 'center', marginBottom: 16 }}>
+              {currentVersion && currentBook && currentChapter 
+                ? `Loading verses for ${currentBook.name} ${currentChapter.number}...`
+                : 'Select a Bible version, book, and chapter to begin reading.'
+              }
             </Text>
+
           </View>
         )}
       </ScrollView>
 
-      {/* Floating Navigation */}
-      <FloatingNavigation
-        onPrevious={() => handleNavigate('prev')}
-        onNext={() => handleNavigate('next')}
-      />
+      {/* Floating Navigation - Only show when scrolling */}
+      {showFloatingNav && (
+        <FloatingNavigation
+          onPrevious={() => handleNavigate('prev')}
+          onNext={() => handleNavigate('next')}
+        />
+      )}
 
       {/* Version Selection Modal */}
       <Modal
@@ -592,76 +715,46 @@ const Bible = () => {
               </View>
               
               <ScrollView style={{ maxHeight: 300 }}>
-                {/* Priority English Versions */}
-                {categorizedVersions.priorityEnglish.length > 0 && (
-                  <>
-                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 8, paddingHorizontal: 4 }}>Popular English Versions</Text>
-                    {categorizedVersions.priorityEnglish.map((item) => (
-                      <TouchableOpacity
-                        key={item.id}
-                        onPress={() => handleVersionSelect(item)}
-                        style={{
-                          padding: 12,
-                          borderRadius: 8,
-                          marginBottom: 8,
-                          backgroundColor: currentVersion?.id === item.id ? '#DBEAFE' : '#F3F4F6'
-                        }}
-                      >
-                        <Text style={{ fontWeight: '600', color: '#1F2937' }}>{item.abbreviation}</Text>
-                        <Text style={{ fontSize: 14, color: '#6B7280' }}>{item.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </>
-                )}
+                {/* Core Bible Versions */}
+                {(() => {
+                  const coreVersions = getCoreVersionsForDisplay();
+                  return coreVersions.length > 0 && (
+                    <>
+                      <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', marginBottom: 12, marginTop: 8, paddingHorizontal: 4 }}>Bible Versions</Text>
+                      {coreVersions.map((item) => (
+                        <TouchableOpacity
+                          key={item.id}
+                          onPress={() => handleVersionSelect(item)}
+                          style={{
+                            padding: 16,
+                            borderRadius: 12,
+                            marginBottom: 12,
+                            backgroundColor: currentVersion?.id === item.id ? '#DBEAFE' : '#F9FAFB',
+                            borderWidth: currentVersion?.id === item.id ? 2 : 1,
+                            borderColor: currentVersion?.id === item.id ? '#3B82F6' : '#E5E7EB'
+                          }}
+                        >
+                          <Text style={{ fontWeight: '600', fontSize: 16, color: '#1F2937', marginBottom: 4 }}>
+                            {item.friendlyName}
+                          </Text>
+                          <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 2 }}>
+                            {item.friendlyAbbrev}
+                          </Text>
+                          <Text style={{ fontSize: 12, color: '#9CA3AF' }}>
+                            {item.description}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </>
+                  );
+                })()}
 
-                {/* Other English Versions */}
-                {categorizedVersions.otherEnglish.length > 0 && (
-                  <>
-                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 16, paddingHorizontal: 4 }}>Other English Versions</Text>
-                    {categorizedVersions.otherEnglish.map((item) => (
-                      <TouchableOpacity
-                        key={item.id}
-                        onPress={() => handleVersionSelect(item)}
-                        style={{
-                          padding: 12,
-                          borderRadius: 8,
-                          marginBottom: 8,
-                          backgroundColor: currentVersion?.id === item.id ? '#DBEAFE' : '#F3F4F6'
-                        }}
-                      >
-                        <Text style={{ fontWeight: '500', color: '#1F2937' }}>{item.abbreviation}</Text>
-                        <Text style={{ fontSize: 14, color: '#6B7280' }}>{item.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </>
-                )}
-
-                {/* Other Languages */}
-                {Object.keys(categorizedVersions.otherLanguages).length > 0 && (
-                  <>
-                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 16, paddingHorizontal: 4 }}>Other Languages</Text>
-                    {Object.entries(categorizedVersions.otherLanguages).map(([languageName, languageVersions]) => (
-                      <View key={languageName}>
-                        <Text style={{ fontSize: 16, fontWeight: '500', color: '#374151', marginBottom: 4, marginTop: 12, paddingHorizontal: 4 }}>{languageName}</Text>
-                        {languageVersions.map((item) => (
-                          <TouchableOpacity
-                            key={item.id}
-                            onPress={() => handleVersionSelect(item)}
-                            style={{
-                              padding: 12,
-                              borderRadius: 8,
-                              marginBottom: 8,
-                              backgroundColor: currentVersion?.id === item.id ? '#DBEAFE' : '#F3F4F6'
-                            }}
-                          >
-                            <Text style={{ fontWeight: '500', color: '#1F2937' }}>{item.abbreviation}</Text>
-                            <Text style={{ fontSize: 14, color: '#6B7280' }}>{item.name}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    ))}
-                  </>
-                )}
+                {/* Note about version availability */}
+                <View style={{ marginTop: 16, padding: 12, backgroundColor: '#F0F9FF', borderRadius: 8 }}>
+                  <Text style={{ fontSize: 12, color: '#0369A1', textAlign: 'center' }}>
+                    All versions are public domain and freely available
+                  </Text>
+                </View>
               </ScrollView>
             </View>
           </Pressable>
@@ -838,15 +931,15 @@ const Bible = () => {
           </Pressable>
         </Pressable>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
 // Main BibleScreen component wrapped in context
-export default function BibleScreen() {
+export default function BibleScreen({ route }) {
   return (
     <VersesProvider>
-      <Bible />
+      <Bible route={route} />
     </VersesProvider>
   );
 }

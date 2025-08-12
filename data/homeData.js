@@ -45,7 +45,7 @@ export const realStuffCards = [
     scriptureRef: 'Psalm 46:10',
     reflection: 'The quiet isn\'t abandonment—it\'s where trust gets built. Keep showing up. He\'s still there.',
     color: 'indigo',
-    actions: ['Reflect With God', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 2,
@@ -56,7 +56,7 @@ export const realStuffCards = [
     scriptureRef: 'Isaiah 40:31',
     reflection: 'Your timeline isn\'t broken. Sometimes the waiting is the breakthrough.',
     color: 'indigo',
-    actions: ['Reflect With God', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 3,
@@ -67,7 +67,7 @@ export const realStuffCards = [
     scriptureRef: 'Romans 8:26',
     reflection: 'God doesn\'t need your perfect words. He already knows your heart.',
     color: 'indigo',
-    actions: ['Reflect With God', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 4,
@@ -78,7 +78,7 @@ export const realStuffCards = [
     scriptureRef: 'Hebrews 4:16',
     reflection: 'You don\'t clean up first. You come as you are and He does the healing.',
     color: 'indigo',
-    actions: ['Reflect With God', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 5,
@@ -89,7 +89,7 @@ export const realStuffCards = [
     scriptureRef: 'Romans 8:1',
     reflection: 'God\'s love doesn\'t waver with your performance. He\'s proud of your progress.',
     color: 'indigo',
-    actions: ['Reflect With God', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
 
   // LOVE PILLAR (Warm Blush + Subtle Glow)
@@ -102,7 +102,7 @@ export const realStuffCards = [
     scriptureRef: 'Jeremiah 31:3',
     reflection: 'You are already deeply loved. Human love is a gift, not a requirement for your worth.',
     color: 'rose',
-    actions: ['Open My Heart', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 7,
@@ -113,7 +113,7 @@ export const realStuffCards = [
     scriptureRef: '1 Corinthians 13',
     reflection: 'Your heart is beautiful. Just make sure you\'re not pouring from an empty cup.',
     color: 'rose',
-    actions: ['Open My Heart', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 8,
@@ -124,7 +124,7 @@ export const realStuffCards = [
     scriptureRef: 'Psalm 139:14',
     reflection: 'God made you exactly as you are, on purpose. You are already His beloved.',
     color: 'rose',
-    actions: ['Open My Heart', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 9,
@@ -135,7 +135,7 @@ export const realStuffCards = [
     scriptureRef: '1 John 4:19',
     reflection: 'Love isn\'t a performance. The right people will love you because of who you are, not despite it.',
     color: 'rose',
-    actions: ['Open My Heart', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 10,
@@ -146,7 +146,7 @@ export const realStuffCards = [
     scriptureRef: '1 Corinthians 13:4-7',
     reflection: 'Real love feels peaceful, not anxious. It adds to your life instead of draining it.',
     color: 'rose',
-    actions: ['Open My Heart', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
 
   // RELATIONSHIPS PILLAR (Soft Teal + Gentle Wave)
@@ -159,7 +159,7 @@ export const realStuffCards = [
     scriptureRef: 'Psalm 34:18',
     reflection: 'Sometimes people pull away for reasons that have nothing to do with you. Let them go with grace.',
     color: 'teal',
-    actions: ['Find Peace', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 12,
@@ -170,7 +170,7 @@ export const realStuffCards = [
     scriptureRef: 'Ecclesiastes 4:9',
     reflection: 'You deserve people who match your energy. Your effort is a gift—give it to those who appreciate it.',
     color: 'teal',
-    actions: ['Find Peace', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 13,
@@ -181,7 +181,7 @@ export const realStuffCards = [
     scriptureRef: 'Matthew 5:37',
     reflection: 'Boundaries aren\'t walls—they\'re bridges to healthier relationships. Start small.',
     color: 'teal',
-    actions: ['Find Peace', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 14,
@@ -192,7 +192,7 @@ export const realStuffCards = [
     scriptureRef: '1 Corinthians 13:7',
     reflection: 'Healing takes time. It\'s okay to go slow. Trust will come again when you\'re ready.',
     color: 'teal',
-    actions: ['Find Peace', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 15,
@@ -203,7 +203,7 @@ export const realStuffCards = [
     scriptureRef: 'Genesis 16:13',
     reflection: 'God sees you fully and loves what He sees. That\'s your foundation—everything else is extra.',
     color: 'teal',
-    actions: ['Find Peace', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
 
   // LUST PILLAR (Clean Clay Rose + Soft Texture)
@@ -216,7 +216,7 @@ export const realStuffCards = [
     scriptureRef: 'Matthew 5:8',
     reflection: 'Every time you start over, you\'re choosing hope over shame. That\'s not failure—that\'s courage.',
     color: 'clay',
-    actions: ['Start Fresh', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 17,
@@ -227,7 +227,7 @@ export const realStuffCards = [
     scriptureRef: '1 John 1:9',
     reflection: 'God isn\'t disappointed in your humanity. He\'s proud of your desire to grow.',
     color: 'clay',
-    actions: ['Start Fresh', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 18,
@@ -238,7 +238,7 @@ export const realStuffCards = [
     scriptureRef: 'Colossians 3:2',
     reflection: 'Next time you feel the urge to escape, pause. Ask God what your heart really needs.',
     color: 'clay',
-    actions: ['Start Fresh', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 19,
@@ -249,7 +249,7 @@ export const realStuffCards = [
     scriptureRef: 'Psalm 51:10',
     reflection: 'Purity isn\'t about perfection—it\'s about direction. Every moment is a new chance to choose.',
     color: 'clay',
-    actions: ['Start Fresh', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   },
   {
     id: 20,
@@ -260,7 +260,7 @@ export const realStuffCards = [
     scriptureRef: '1 Corinthians 10:13',
     reflection: 'The loudest voice isn\'t always the truest. Listen for the gentle whisper of love.',
     color: 'clay',
-    actions: ['Start Fresh', 'Ask Adina', 'I Feel This']
+    actions: ['Read the full passage', 'Pray this verse', 'Journal about this']
   }
 ];
 

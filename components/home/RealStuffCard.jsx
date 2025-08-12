@@ -54,7 +54,7 @@ const RealStuffCard = ({ card, width, onPress }) => {
         {/* CTA pill */}
         <View style={{ marginTop: 'auto' }}>
           <View style={{ backgroundColor: 'rgba(255,255,255,0.28)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start' }}>
-            <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{card.actions?.[0] || 'Reflect With God'}</Text>
+            <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{card.actions?.[0] || 'Read the full passage'}</Text>
           </View>
         </View>
 

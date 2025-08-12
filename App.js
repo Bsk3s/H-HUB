@@ -35,8 +35,15 @@ function App() {
 
   // Navigation functions
   const navigate = (screenName, params = {}) => {
+    console.log(`🧭 Navigation: ${currentScreen} → ${screenName}`, params);
     setCurrentScreen(screenName);
     setScreenParams(params);
+    
+    // Update activeTab to match navigation for visual feedback
+    if (['Home', 'Chat', 'Bible', 'Study'].includes(screenName)) {
+      setActiveTab(screenName);
+      console.log(`🎯 Tab updated: ${activeTab} → ${screenName}`);
+    }
   };
 
   const goBack = () => {
@@ -58,9 +65,9 @@ function App() {
       case 'Home':
         return <HomeScreen navigation={navigation} />;
       case 'Bible':
-        return <BibleScreen navigation={navigation} />;
+        return <BibleScreen navigation={navigation} route={{ params: screenParams }} />;
       case 'Study':
-        return <StudyScreen navigation={navigation} />;
+        return <StudyScreen navigation={navigation} route={{ params: screenParams }} />;
       case 'Stories':
         return <StoriesScreen navigation={navigation} />;
       case 'StoryDetail':

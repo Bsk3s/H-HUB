@@ -143,6 +143,7 @@ export default function HomeScreen({ navigation }) {
         card={selectedRealStuffCard}
         isVisible={showRealStuffModal}
         onClose={handleCloseRealStuffModal}
+        navigation={navigation}
         onShare={() => {}}
         onSave={() => {}}
         onCTA={() => {}}

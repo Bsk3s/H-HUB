@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -11,12 +11,13 @@ import {
   StyleSheet
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Heart, MessageCircle, Star } from 'lucide-react-native';
+import { X, Heart, MessageCircle, Star, BookOpen, Edit3 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import PrayerModal from './PrayerModal';
 
 const { height, width } = Dimensions.get('window');
 
-const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA }) => {
+const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navigation }) => {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const backgroundOpacityAnim = useRef(new Animated.Value(0)).current;
@@ -43,10 +44,12 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA }) =>
         }),
       ]).start();
     } else {
-      // Reset animations for next time
+      // Reset animations and button state for next time
       scaleAnim.setValue(0.9);
       opacityAnim.setValue(0);
       backgroundOpacityAnim.setValue(0);
+      setPressedAction(null); // Reset button state when modal closes
+      setIsNavigating(false); // Reset navigation state
     }
   }, [isVisible]);
 
@@ -75,6 +78,11 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA }) =>
       onClose();
     });
   };
+
+  // Declare ALL state hooks BEFORE any early returns
+  const [pressedAction, setPressedAction] = useState(null);
+  const [showPrayerModal, setShowPrayerModal] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   if (!card) return null;
 
@@ -115,23 +123,54 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA }) =>
   };
 
   const handleAction = async (action) => {
+    // Visual feedback
+    setPressedAction(action);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
     console.log('Action pressed:', action);
     
-    if (action.includes('Reflect With God') || action.includes('Open My Heart') || action.includes('Find Peace') || action.includes('Start Fresh')) {
-      onCTA && onCTA();
-    } else if (action.includes('Ask Adina')) {
-      // Handle Ask Adina action
-    } else if (action.includes('I Feel This')) {
-      // Handle I Feel This action
+    if (action.includes('Read the full passage')) {
+      // Navigate to Bible with specific verse/passage
+      console.log('Navigate to Bible:', card.scriptureRef);
+      if (navigation && card.scriptureRef) {
+        setIsNavigating(true);
+        // Brief delay for visual feedback, then navigate
+        setTimeout(() => {
+          onClose();
+          navigation.navigate('Bible', { scriptureRef: card.scriptureRef });
+          setIsNavigating(false);
+        }, 300);
+      }
+    } else if (action.includes('Pray this verse')) {
+      // Open guided prayer with this specific verse
+      console.log('Start guided prayer with:', card.scripture);
+      setShowPrayerModal(true);
+    } else if (action.includes('Journal about this')) {
+      // Open Study/Notes section for journaling
+      console.log('Open journal for:', card.title);
+      if (navigation) {
+        // Close modal first
+        onClose();
+        // Navigate to Study screen with pre-filled context
+        navigation.navigate('Study', { 
+          prefilledContent: {
+            title: card.title,
+            scripture: card.scripture,
+            scriptureRef: card.scriptureRef,
+            reflection: card.reflection
+          }
+        });
+      }
     }
   };
 
   const getActionIcon = (action) => {
-    if (action.includes('God') || action.includes('Fresh') || action.includes('Peace') || action.includes('Heart')) {
+    if (action.includes('Read the full passage')) {
+      return <BookOpen size={18} color="#6b7280" />;
+    } else if (action.includes('Pray this verse')) {
       return <Heart size={18} color="#6b7280" />;
-    } else if (action.includes('Adina')) {
-      return <MessageCircle size={18} color="#6b7280" />;
+    } else if (action.includes('Journal about this')) {
+      return <Edit3 size={18} color="#6b7280" />;
     } else {
       return <Star size={18} color="#6b7280" />;
     }
@@ -245,14 +284,16 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA }) =>
               <Text style={styles.sectionLabel}>TAKE ACTION</Text>
               <View style={styles.actionButtons}>
                 {card.actions.map((action, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => handleAction(action)}
-                    style={[
-                      styles.actionButton,
-                      index === 0 && styles.primaryActionButton
-                    ]}
-                  >
+                                  <TouchableOpacity
+                  key={index}
+                  onPress={() => handleAction(action)}
+                  style={[
+                    styles.actionButton,
+                    index === 0 && styles.primaryActionButton,
+                    pressedAction === action && styles.pressedActionButton,
+                    isNavigating && action.includes('Read the full passage') && styles.navigatingButton
+                  ]}
+                >
                     <View style={styles.actionButtonContent}>
                       {getActionIcon(action)}
                       <Text style={[
@@ -279,6 +320,13 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA }) =>
           </View>
         </ScrollView>
       </Animated.View>
+
+      {/* Prayer Modal */}
+      <PrayerModal
+        card={card}
+        isVisible={showPrayerModal}
+        onClose={() => setShowPrayerModal(false)}
+      />
     </Modal>
   );
 };
@@ -427,6 +475,14 @@ const styles = StyleSheet.create({
   },
   primaryActionButtonText: {
     color: 'white',
+  },
+  pressedActionButton: {
+    transform: [{ scale: 0.95 }],
+    opacity: 0.7,
+  },
+  navigatingButton: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
   bottomActions: {
     flexDirection: 'row',
