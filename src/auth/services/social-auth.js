@@ -147,4 +147,4 @@ export async function handleAuthCallback(url) {
     console.error('❌ Error parsing URL:', parseError);
     return { success: false, error: parseError };
   }
-} 
+}

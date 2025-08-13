@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ActivityIndicator, SafeAreaView, ScrollView } from 'react-native';
+import { View, ActivityIndicator, SafeAreaView, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 // Import components
@@ -53,6 +53,8 @@ export default function HomeScreen({ navigation }) {
     setShowRealStuffModal(true);
   };
 
+
+
   const handleCloseRealStuffModal = () => {
     setShowRealStuffModal(false);
     setSelectedRealStuffCard(null);
@@ -75,6 +77,8 @@ export default function HomeScreen({ navigation }) {
       <View style={{ marginTop: 24 }}>
         <DailyVerse />
       </View>
+
+
 
       {/* Daily Progress */}
       <View style={{ marginTop: 32 }}>

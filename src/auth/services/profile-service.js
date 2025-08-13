@@ -83,6 +83,36 @@ export async function getUserProfile(userId) {
 }
 
 /**
+ * Create or update a user profile with specific data
+ */
+export async function createUserProfile(userId, profileData) {
+  if (!userId) {
+    console.error('Cannot create profile for undefined user ID');
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .upsert({
+        id: userId,
+        ...profileData
+      }, {
+        onConflict: ['id']
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    console.log('Successfully created/updated user profile');
+    return data;
+  } catch (error) {
+    console.error('Error creating user profile:', error.message);
+    throw error;
+  }
+}
+
+/**
  * Update specific fields of a user profile
  */
 export async function updateUserProfile(userId, profileData) {
@@ -99,10 +129,18 @@ export async function updateUserProfile(userId, profileData) {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      throw new Error('Profile not found or no changes made');
+    }
+    
     return data;
   } catch (error) {
     console.error('Error updating user profile:', error.message);
     throw error;
   }
-} 
+}

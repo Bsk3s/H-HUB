@@ -39,4 +39,4 @@ export const supabase = getSupabaseClient();
 // Export helper hook for use in components
 export function useSupabase() {
   return supabase;
-} 
+}

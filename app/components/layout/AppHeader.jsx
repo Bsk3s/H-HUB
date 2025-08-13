@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, Pressable, StyleSheet } from 'reac
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Menu, LogOut, User, Settings, HelpCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../../src/auth/context';
 
 /**
  * AppHeader Component
@@ -10,9 +11,10 @@ import * as Haptics from 'expo-haptics';
  * Main navigation header with "Heavenly Hub" branding and hamburger menu.
  * Simple styling without external dependencies.
  */
-const AppHeader = () => {
+const AppHeader = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { logout } = useAuth();
 
   const handleMenuPress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -22,9 +24,13 @@ const AppHeader = () => {
   const handleLogout = async () => {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      console.log('Logout clicked - TODO: implement Supabase auth');
+      console.log('🚪 Logout clicked');
       setIsMenuOpen(false);
-      console.log('Navigate to sign-in - TODO: implement React Navigation');
+      const success = await logout();
+      if (success) {
+        console.log('✅ Logout successful - navigating to Landing');
+        navigation.navigate('Landing');
+      }
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -37,7 +43,8 @@ const AppHeader = () => {
       label: 'Profile', 
       onPress: () => { 
         setIsMenuOpen(false); 
-        console.log('Navigate to profile - TODO: implement navigation'); 
+        console.log('👤 Profile pressed - navigating to Profile');
+        navigation.navigate('Profile');
       } 
     },
     { 
@@ -45,7 +52,8 @@ const AppHeader = () => {
       label: 'Settings', 
       onPress: () => { 
         setIsMenuOpen(false); 
-        console.log('Navigate to settings - TODO: implement navigation'); 
+        console.log('⚙️ Settings pressed - navigating to Settings');
+        navigation.navigate('Settings');
       } 
     },
     { 
@@ -53,7 +61,8 @@ const AppHeader = () => {
       label: 'Help', 
       onPress: () => { 
         setIsMenuOpen(false); 
-        console.log('Navigate to help - TODO: implement navigation'); 
+        console.log('❓ Help pressed - navigating to Help');
+        navigation.navigate('Help');
       } 
     },
     { 

@@ -154,4 +154,4 @@ export async function testEmailAuth(email, password) {
     console.error('Authentication test failed:', error.message);
     throw error;
   }
-} 
+}

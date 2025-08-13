@@ -174,6 +174,36 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  // Email/Password Registration
+  const register = async (email, password) => {
+    clearError();
+    setLoading(true);
+    console.log('📝 Attempting registration with email:', email);
+    
+    try {
+      const { user: authUser, session } = await signUpWithEmail(email, password);
+      
+      if (authUser) {
+        console.log('✅ Registration successful for user:', authUser.email);
+        // Ensure user profile exists
+        await ensureUserProfile(authUser.id);
+        // Set auth flag in AsyncStorage
+        await AsyncStorage.setItem('isAuthenticated', 'true');
+        console.log('💾 isAuthenticated set in AsyncStorage');
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('❌ Registration error:', err);
+      setError({
+        message: err.message || 'Failed to create account'
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Google Sign-In
   const signInWithGoogle = async () => {
     clearError();
@@ -260,87 +290,16 @@ const AuthProvider = ({ children }) => {
     setLoading(true);
     
     try {
-      console.log('🔑 Initiating Apple sign-in...');
+      console.log('🍎 Initiating Apple sign-in...');
+      const result = await supabaseSignInWithApple();
       
-      // First check if we already have a session
-      const { data: existingSession } = await supabase.auth.getSession();
-      if (existingSession?.session) {
-        console.log('⚠️ Session already exists before Apple sign-in!');
-        console.log('👤 Existing user:', existingSession.session.user.email);
+      if (result) {
+        console.log('✅ Apple sign-in successful');
+        await AsyncStorage.setItem('isAuthenticated', 'true');
+        return true;
       }
       
-      // Decide whether to use native redirect or Expo AuthSession
-      let redirectUrl;
-      if (Platform.OS === 'web') {
-        redirectUrl = 'https://app.a-heavenlyhub.com/auth/v1/callback';
-      } else {
-        redirectUrl = 'heavenlyhub://auth/callback';
-      }
-      console.log('\ud83d\udd17 Apple Auth Redirect URL:', redirectUrl);
-      
-      // Start the OAuth flow with Supabase
-      console.log('🔄 Starting OAuth flow with Supabase...');
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: { 
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: true,
-        }
-      });
-      
-      if (error) {
-        console.error('❌ Supabase OAuth setup error:', error);
-        throw error;
-      }
-      
-      // Open the authentication URL in a browser
-      if (data?.url) {
-        console.log('🌐 Opening browser with URL:', data.url);
-        
-        try {
-          // Use WebBrowser to handle the flow properly
-          console.log('🔄 Opening OAuth session in WebBrowser...');
-          const result = await WebBrowser.openAuthSessionAsync(
-            data.url,
-            redirectUrl
-          );
-          
-          console.log('📱 WebBrowser result type:', result.type);
-          
-          if (result.type === 'success') {
-            console.log('✅ Auth browser session successful');
-            console.log('OAuth session successful, result:', result);
-            if (result.url) {
-              console.log('Processing callback URL:', result.url);
-              try {
-                const authResult = await handleAuthCallback(result.url);
-                console.log('Auth callback result:', authResult);
-                if (authResult.success) {
-                  await AsyncStorage.setItem('isAuthenticated', 'true');
-                  console.log('💾 isAuthenticated set in AsyncStorage');
-                  await logAuthState('after successful Apple sign-in via handleAuthCallback');
-                  return true;
-                } else {
-                  console.error('Auth callback failed:', authResult.error);
-                }
-              } catch (e) {
-                console.error('Error in handleAuthCallback:', e);
-              }
-            } else {
-              console.error('No URL in OAuth result');
-            }
-          } else {
-            console.log('❌ Auth canceled or failed:', result.type);
-            throw new Error(`Authentication was canceled or failed: ${result.type}`);
-          }
-        } catch (browserError) {
-          console.error('❌ WebBrowser error:', browserError);
-          throw browserError;
-        }
-      } else {
-        console.error('❌ No authentication URL received from Supabase');
-        throw new Error('Failed to get authentication URL');
-      }
+      return true;
     } catch (err) {
       console.error('❌ Apple sign-in error:', err);
       setError({
@@ -352,51 +311,30 @@ const AuthProvider = ({ children }) => {
     }
   };
 
-  // Email/Password Registration
-  const register = async (email, password, displayName) => {
-    clearError();
-    setLoading(true);
-    
-    try {
-      const { user: authUser, session } = await signUpWithEmail(email, password);
-      
-      // Ensure user profile exists if registration returned a user
-      // (In case of no email confirmation requirement)
-      if (authUser) {
-        await ensureUserProfile(authUser.id);
-      }
-      
-      // Note: For email confirmation flow, the user will need to verify their email
-      // before they are fully authenticated
-      
-      return true;
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError({
-        message: err.message || 'Failed to sign up'
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Sign out
+  // Logout function
   const logout = async () => {
     clearError();
     setLoading(true);
+    console.log('🚪 Starting logout process...');
     
     try {
-      console.log('🔑 Attempting logout...');
+      // First, get the current session to log details
+      const { data: currentSession } = await supabase.auth.getSession();
+      console.log('📋 Current session before logout:', currentSession?.session ? 'exists' : 'null');
       
-      // First check current session
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('🔐 Session before logout:', sessionData?.session ? 'exists' : 'null');
-      
-      // Call Supabase signOut
+      // Attempt to sign out via Supabase
+      console.log('🔄 Calling supabase.auth.signOut()...');
       const { error } = await supabaseSignOut();
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase logout error:', error);
+        // Continue with cleanup even if Supabase logout fails
+      } else {
+        console.log('✅ Supabase logout successful');
+      }
+      
+      // Clear user state immediately
+      setUser(null);
       
       // Clear AsyncStorage auth state regardless of Supabase response
       try {
@@ -470,7 +408,7 @@ const AuthProvider = ({ children }) => {
 };
 
 // Custom hook to use the auth context
-export const useAuth = () => {
+const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
@@ -478,4 +416,4 @@ export const useAuth = () => {
   return context;
 };
 
-export default AuthProvider; 
+export { AuthProvider, useAuth };
