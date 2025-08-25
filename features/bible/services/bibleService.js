@@ -57,7 +57,7 @@ export const getBibleVersions = async () => {
     return data.data;
   } catch (error) {
     console.error('Error fetching Bible versions:', error);
-    throw error;
+    throw new Error('Unable to load Bible versions. Please check your connection and try again.');
   }
 };
 
@@ -81,7 +81,7 @@ export const getBooks = async (bibleId) => {
     return data.data;
   } catch (error) {
     console.error('Error fetching books:', error);
-    throw error;
+    throw new Error('Unable to load Bible books. Please check your connection and try again.');
   }
 };
 
@@ -142,7 +142,7 @@ export const getChapters = async (bibleId, bookId) => {
     return processedChapters;
   } catch (error) {
     console.error('Error fetching chapters:', error);
-    throw error;
+    throw new Error('Unable to load Bible chapters. Please check your connection and try again.');
   }
 };
 
@@ -237,7 +237,7 @@ export const getChapterContent = async (bibleId, chapterId) => {
     return processedData;
   } catch (error) {
     console.error('Error fetching chapter content:', error);
-    throw error;
+    throw new Error('Unable to load chapter content. Please check your connection and try again.');
   }
 };
 
@@ -276,7 +276,7 @@ export const searchBible = async (bibleId, query) => {
     return data.data;
   } catch (error) {
     console.error('Error searching Bible:', error);
-    throw error;
+    throw new Error('Unable to search the Bible. Please check your connection and try again.');
   }
 };
 
@@ -311,7 +311,7 @@ export const getVerse = async (bibleId, verseId) => {
     throw new Error('Invalid verse data format');
   } catch (error) {
     console.error('Error fetching verse:', error);
-    throw error;
+    throw new Error('Unable to load verse. Please check your connection and try again.');
   }
 };
 

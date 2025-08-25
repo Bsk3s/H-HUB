@@ -119,18 +119,41 @@ const ActivityModal = ({ activity, onClose, onSetLiveDraft }) => {
       }
     }));
   }, [activity?.id, activity?.progress, onSetLiveDraft]);
+
+  // 🚀 PERFORMANCE: Throttled draft update to reduce state changes
+  const throttledUpdateDraft = useCallback((draftUpdate) => {
+    if (updateDraftRef.current) {
+      clearTimeout(updateDraftRef.current);
+    }
+    updateDraftRef.current = setTimeout(() => {
+      updateDraft(draftUpdate);
+    }, 16); // ~60fps throttling
+  }, [updateDraft]);
+
+  const updateDraftRef = useRef(null);
   
-  const handleSliderChange = (value) => {
+  const handleSliderChange = useCallback((value) => {
     const dailyGoal = activity.dailyGoal || 20;
     const cappedValue = Math.min(Math.round(value), dailyGoal);
+    
+    // 🚀 PERFORMANCE: Immediate UI update, throttled state update
     setSliderValue(cappedValue);
-    updateDraft({ progress: cappedValue });
-  }
+    throttledUpdateDraft({ progress: cappedValue });
+  }, [activity.dailyGoal, throttledUpdateDraft]);
 
-  const handleSliderComplete = (value) => {
-    // Final value is already set in handleSliderChange
-    // No need to call updateDraft again
-  };
+  const handleSliderComplete = useCallback((value) => {
+    // 🚀 PERFORMANCE: Clear any pending throttled updates and apply final value immediately
+    if (updateDraftRef.current) {
+      clearTimeout(updateDraftRef.current);
+      updateDraftRef.current = null;
+    }
+    
+    const dailyGoal = activity.dailyGoal || 20;
+    const cappedValue = Math.min(Math.round(value), dailyGoal);
+    
+    // Ensure final value is committed immediately
+    updateDraft({ progress: cappedValue });
+  }, [activity.dailyGoal, updateDraft]);
 
   const handleStartTimer = () => {
     setShowTimerControls(true);
@@ -646,6 +669,9 @@ const ActivityModal = ({ activity, onClose, onSetLiveDraft }) => {
             thumbTintColor={activityColor}
             minimumTrackTintColor={activityColor}
             maximumTrackTintColor="#E5E7EB"
+            tapToSeek={true}
+            renderTrackMarkComponent={null}
+            renderAboveThumbComponent={null}
           />
         </View>
       </ScrollView>

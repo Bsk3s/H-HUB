@@ -2,6 +2,8 @@
 // Supabase service helpers for activities table
 
 import { supabase } from '../auth/supabase-client';
+import { recalculateStreaks, logStreakAchievement } from './streaks';
+import { fetchDailyProgress } from './activityUtils';
 
 // --- Constants ---
 const ACTIVITY_DEFINITIONS = {
@@ -122,72 +124,7 @@ export const logActivityProgress = async (logData) => {
 
 // === NEW SIMPLIFIED DAILY PROGRESS SYSTEM ===
 
-/**
- * Fetch today's total progress for a specific activity
- * @param {string} userId - User's UUID
- * @param {string} activityType - Activity type (prayer, bible, devotional, evening-prayer)
- * @param {string} date - Date in YYYY-MM-DD format (optional, defaults to today)
- * @returns {Promise<number>} Total minutes/chapters for the day
- */
-export const fetchDailyProgress = async (userId, activityType, date = null) => {
-  if (!userId || !activityType) {
-    console.error("User ID and activity type are required");
-    return 0;
-  }
-
-  const targetDate = date || new Date().toISOString().split('T')[0];
-
-  try {
-    // Try the new daily_progress table first
-    const { data: dailyData, error: dailyError } = await supabase
-      .from('daily_progress')
-      .select('total_progress')
-      .eq('user_id', userId)
-      .eq('activity_type', activityType)
-      .eq('date', targetDate)
-      .maybeSingle();
-
-    if (!dailyError && dailyData) {
-      return dailyData.total_progress || 0;
-    }
-
-    // Fallback to activity_logs table (sum up individual entries)
-    console.log('Using activity_logs fallback for fetchDailyProgress');
-    
-    // First, get the user's activities to find the activity ID
-    const { data: activities, error: activitiesError } = await supabase
-      .from('user_activities')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('type', activityType)
-      .maybeSingle();
-
-    if (activitiesError || !activities) {
-      console.error('Error fetching user activity:', activitiesError);
-      return 0;
-    }
-
-    // Then sum up the progress for today
-    const { data: logs, error: logsError } = await supabase
-      .from('activity_logs')
-      .select('progress')
-      .eq('user_id', userId)
-      .eq('user_activity_id', activities.id)
-      .gte('created_at', targetDate + 'T00:00:00')
-      .lt('created_at', targetDate + 'T23:59:59');
-
-    if (logsError) {
-      console.error('Error fetching activity logs:', logsError);
-      return 0;
-    }
-
-    return logs?.reduce((sum, log) => sum + (log.progress || 0), 0) || 0;
-
-  } catch (error) {
-    console.error('Error fetching daily progress:', error);
-    return 0;
-  }
-};
+// fetchDailyProgress moved to activityUtils.js to avoid circular dependency
 
 /**
  * Set today's total progress for a specific activity
@@ -219,8 +156,34 @@ export const setDailyProgress = async (userId, activityType, totalProgress, date
       });
 
     if (!dailyError) {
-      console.log('Successfully saved to daily_progress table');
-      return;
+      console.log('✅ Successfully saved to daily_progress table');
+      
+      // 🔥 STREAKS: Recalculate streaks after progress save
+      try {
+        const streakResult = await recalculateStreaks(userId, activityType);
+        
+        // Log achievement if new personal best
+        if (streakResult.isNewBest) {
+          await logStreakAchievement(userId, activityType, streakResult.currentStreak, 'personal_best');
+        }
+        
+        // Log milestone achievements (every 7, 30, 100 days)
+        const milestones = [7, 30, 60, 100, 365];
+        if (milestones.includes(streakResult.currentStreak)) {
+          await logStreakAchievement(userId, activityType, streakResult.currentStreak, 'milestone');
+        }
+        
+        console.log(`🔥 Streaks updated: current=${streakResult.currentStreak}, best=${streakResult.bestStreak}`);
+        
+        return {
+          progress: totalProgress,
+          streaks: streakResult
+        };
+      } catch (streakError) {
+        console.error('Error updating streaks:', streakError);
+        // Don't fail the entire operation if streak calculation fails
+        return { progress: totalProgress };
+      }
     }
 
     // Fallback to activity_logs table

@@ -1,83 +1,81 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, useWindowDimensions, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
+import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import PressableWithFeedback from '../../src/components/feedback/PressableWithFeedback';
 
-// Simple top tab bar with smooth animations (virus-proof)
 function TopTabBar({ activeTab, onTabChange }) {
   const { width } = useWindowDimensions();
-  
+
   const tabs = [
-    { key: 'Chat', label: 'Chat' },
-    { key: 'Home', label: 'Home' },
-    { key: 'Bible', label: 'Bible' },
-    { key: 'Study', label: 'Study' }
+    { id: 'Chat', label: 'Chat' },
+    { id: 'Home', label: 'Home' },
+    { id: 'Bible', label: 'Bible' },
+    { id: 'Study', label: 'Study' }
   ];
 
-  const contentWidth = width - 32; // Account for padding
+  const contentWidth = width - 32; // 16px padding on each side
   const tabWidth = contentWidth / tabs.length;
-  
-  // Animation ref for smooth indicator movement
-  const indicatorPosition = useRef(new Animated.Value(0)).current;
-  
-  // Animate indicator when active tab changes
-  useEffect(() => {
-    const activeIndex = tabs.findIndex(tab => tab.key === activeTab);
-    Animated.spring(indicatorPosition, {
-      toValue: activeIndex * tabWidth + 2,
-      useNativeDriver: false, // We're animating layout properties
-      tension: 120,
-      friction: 8
-    }).start();
-  }, [activeTab, tabWidth]);
+
+  const handleTabPress = async (tabId) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onTabChange(tabId);
+  };
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    const index = tabs.findIndex(tab => tab.id === activeTab);
+    return {
+      transform: [{ translateX: withSpring(index * tabWidth, { damping: 15 }) }],
+    };
+  });
 
   return (
     <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
       <View style={{
         backgroundColor: '#F3F4F6',
-        borderRadius: 22,
+        borderRadius: 9999, // Full rounded like HB1
         height: 45,
         flexDirection: 'row',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Animated Indicator - smooth movement */}
         <Animated.View
-          style={{
-            position: 'absolute',
-            top: 2,
-            height: 41,
-            width: tabWidth - 4,
-            backgroundColor: 'white',
-            borderRadius: 20,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-            left: indicatorPosition
-          }}
+          style={[
+            { 
+              width: tabWidth,
+              position: 'absolute',
+              height: 36,
+              top: 4.5,
+              borderRadius: 9999, // Full rounded
+              backgroundColor: 'white'
+            },
+            indicatorStyle,
+          ]}
         />
-        
         {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => onTabChange(tab.key)}
-            style={{
-              flex: 1,
-              justifyContent: 'center',
+          <PressableWithFeedback
+            key={tab.id}
+            onPress={() => handleTabPress(tab.id)}
+            style={{ 
+              width: tabWidth,
               alignItems: 'center',
-              height: 45,
-              zIndex: 1
+              justifyContent: 'center',
+              height: '100%'
             }}
+            hapticType="selection"
+            scaleValue={0.98}
           >
-            <Text style={{
-              fontSize: 14,
-              fontWeight: '600',
-              lineHeight: 20,
-              color: activeTab === tab.key ? '#1F2937' : '#6B7280'
-            }}>
+            <Text 
+              style={{ 
+                fontSize: 16,
+                fontWeight: '500',
+                zIndex: 10,
+                color: activeTab === tab.id ? '#000000' : '#6B7280'
+              }}
+            >
               {tab.label}
             </Text>
-          </TouchableOpacity>
+          </PressableWithFeedback>
         ))}
       </View>
     </View>

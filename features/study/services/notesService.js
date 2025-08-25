@@ -45,6 +45,22 @@ export const createFolder = async (name) => {
   }
 };
 
+export const updateFolder = async (folderId, updates) => {
+  try {
+    const { data, error } = await supabase
+      .from('folders')
+      .update({ ...updates, updated_at: new Date() })
+      .eq('id', folderId)
+      .select();
+      
+    if (error) throw error;
+    return data[0];
+  } catch (error) {
+    console.error('Error updating folder:', error);
+    throw new Error('Could not update the folder. Please try again.');
+  }
+};
+
 export const deleteFolder = async (folderId) => {
   try {
     const { error } = await supabase

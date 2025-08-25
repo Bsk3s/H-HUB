@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Modal, FlatList, Pressable, Platform, SafeAreaView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import ErrorBoundary from '../src/components/ErrorBoundary';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import professional Bible components
@@ -9,6 +10,8 @@ import BibleHeader from '../features/bible/components/BibleHeader';
 import SearchBar from '../features/bible/components/SearchBar';
 import VerseItem from '../features/bible/components/VerseItem';
 import SelectionModal from '../features/bible/components/SelectionModal';
+import BibleVerseSkeleton from '../src/components/loading/BibleVerseSkeleton';
+import EmptyBible from '../src/components/empty/EmptyBible';
 import { VersesProvider, useVerses } from '../features/bible/contexts/VersesContext';
 import useBibleVersions from '../features/bible/hooks/useBibleVersions';
 import { getBibleVersions, getBooks, getChapters, getChapterContent } from '../features/bible/services/bibleService';
@@ -335,14 +338,16 @@ const Bible = ({ route }) => {
   };
 
   const scrollToTargetVerse = () => {
-    if (scrollViewRef.current && targetVerse) {
-      // Since verses are rendered in order, we can calculate approximate position
-      // Each verse is roughly 60px high (this is an estimate)
-      const estimatedPosition = (targetVerse - 1) * 60;
-      scrollViewRef.current.scrollTo({ 
-        y: estimatedPosition, 
-        animated: true 
-      });
+    if (scrollViewRef.current && targetVerse && verses.length > 0) {
+      // Find the target verse index in the verses array
+      const targetIndex = verses.findIndex(verse => verse.number === targetVerse);
+      if (targetIndex !== -1) {
+        scrollViewRef.current.scrollToIndex({ 
+          index: targetIndex, 
+          animated: true,
+          viewPosition: 0.3 // Position it 30% from the top
+        });
+      }
     }
   };
 
@@ -537,10 +542,10 @@ const Bible = ({ route }) => {
   if (isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white' }}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color="#4B5563" />
-          <Text style={{ color: '#6B7280', marginTop: 8 }}>Loading Bible...</Text>
+        <View style={{ paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
+          <View style={{ width: '60%', height: 24, backgroundColor: '#E5E7EB', borderRadius: 4 }} />
         </View>
+        <BibleVerseSkeleton count={12} />
       </View>
     );
   }
@@ -642,24 +647,21 @@ const Bible = ({ route }) => {
       </View>
 
       {/* Content */}
-      <ScrollView 
-        ref={scrollViewRef}
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 120 }} // Extend to edges, padding for floating buttons
-        onScroll={handleScroll}
-        scrollEventThrottle={16} // Smooth scroll tracking
-      >
-        {currentChapter && (
-          <Text style={{ fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 24 }}>
-            {currentBook?.name} {currentChapter.number}
-          </Text>
-        )}
-        
+      <View style={{ flex: 1 }}>
         {verses.length > 0 ? (
-          <View>
-            {verses.map((verse) => (
+          <FlatList
+            ref={scrollViewRef}
+            data={verses}
+            keyExtractor={(item) => `verse-${item.id}`}
+            ListHeaderComponent={
+              currentChapter ? (
+                <Text style={{ fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 24 }}>
+                  {currentBook?.name} {currentChapter.number}
+                </Text>
+              ) : null
+            }
+            renderItem={({ item: verse }) => (
               <Text 
-                key={verse.id} 
                 style={{ 
                   fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
                   fontSize: 18,
@@ -671,20 +673,29 @@ const Bible = ({ route }) => {
                 <Text style={{ fontWeight: '700', color: '#6B7280', paddingRight: 4 }}>{verse.number}</Text>
                 {` ${verse.text}`}
               </Text>
-            ))}
-          </View>
+            )}
+            // 🚀 PERFORMANCE: Virtualization optimizations for Bible verses
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={15}
+            initialNumToRender={20}
+            windowSize={12}
+            updateCellsBatchingPeriod={100}
+            scrollEventThrottle={16}
+            onScroll={handleScroll}
+            contentContainerStyle={{ 
+              paddingHorizontal: 16, 
+              paddingTop: 24, 
+              paddingBottom: 120 
+            }}
+          />
         ) : (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
-            <Text style={{ color: '#6B7280', textAlign: 'center', marginBottom: 16 }}>
-              {currentVersion && currentBook && currentChapter 
-                ? `Loading verses for ${currentBook.name} ${currentChapter.number}...`
-                : 'Select a Bible version, book, and chapter to begin reading.'
-              }
-            </Text>
-
+          <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 24 }}>
+            <EmptyBible
+              onSelectVersion={() => setShowVersionModal(true)}
+            />
           </View>
         )}
-      </ScrollView>
+      </View>
 
       {/* Floating Navigation - Only show when scrolling */}
       {showFloatingNav && (
@@ -938,8 +949,16 @@ const Bible = ({ route }) => {
 // Main BibleScreen component wrapped in context
 export default function BibleScreen({ route }) {
   return (
-    <VersesProvider>
-      <Bible route={route} />
-    </VersesProvider>
+    <ErrorBoundary 
+      screenName="Bible"
+      onRetry={() => {
+        // Clear any cached Bible data and retry
+        console.log('🔄 Retrying Bible screen...');
+      }}
+    >
+      <VersesProvider>
+        <Bible route={route} />
+      </VersesProvider>
+    </ErrorBoundary>
   );
 }

@@ -74,11 +74,15 @@ export async function getUserProfile(userId) {
       .eq('id', userId)
       .maybeSingle();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Database error fetching user profile:', error.message);
+      throw new Error('Failed to load user profile. Please try again.');
+    }
     return data;
   } catch (error) {
     console.error('Error getting user profile:', error.message);
-    return null;
+    // Return a user-friendly error instead of null
+    throw new Error(error.message.includes('Failed to load') ? error.message : 'Unable to access your profile. Please check your connection and try again.');
   }
 }
 
@@ -118,7 +122,11 @@ export async function createUserProfile(userId, profileData) {
 export async function updateUserProfile(userId, profileData) {
   if (!userId) {
     console.error('Cannot update profile for undefined user ID');
-    return null;
+    throw new Error('Unable to update profile: User not authenticated.');
+  }
+
+  if (!profileData || Object.keys(profileData).length === 0) {
+    throw new Error('No profile data provided to update.');
   }
 
   try {
@@ -130,17 +138,18 @@ export async function updateUserProfile(userId, profileData) {
       .single();
     
     if (error) {
-      console.error('Error updating user profile:', error);
-      throw error;
+      console.error('Database error updating user profile:', error.message);
+      throw new Error('Failed to save profile changes. Please try again.');
     }
     
     if (!data) {
-      throw new Error('Profile not found or no changes made');
+      throw new Error('Profile not found or unable to save changes.');
     }
     
+    console.log('Successfully updated user profile');
     return data;
   } catch (error) {
     console.error('Error updating user profile:', error.message);
-    throw error;
+    throw new Error(error.message.includes('Failed to save') || error.message.includes('Profile not found') ? error.message : 'Unable to save profile changes. Please check your connection and try again.');
   }
 }

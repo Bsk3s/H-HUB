@@ -4,6 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Import Auth Context
+import { useAuth } from '../src/auth/context';
+
 // Import the animated text hooks
 import useRotatingText from '../hooks/useRotatingText';
 import useTypingText from '../hooks/useTypingText';
@@ -16,6 +19,8 @@ export default function LandingScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
 
+  // Use Auth Context instead of manually checking AsyncStorage
+  const { user, initializing } = useAuth();
   
   // Animated text hooks
   const { text, textColor } = useRotatingText();
@@ -23,29 +28,26 @@ export default function LandingScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    try {
-      checkAuthStatus();
-    } catch (err) {
-      console.error('Error in useEffect:', err);
-      setError(err.message);
-      Alert.alert('Startup Error', err.message);
-    }
-  }, []);
+    checkAuthStatus();
+  }, [initializing, user]); // React to auth state changes
 
   const checkAuthStatus = async () => {
     try {
-      console.log('🔍 Checking auth status on app startup...');
+      // Wait for auth initialization to complete
+      if (initializing) {
+        console.log('🔄 Auth still initializing, waiting...');
+        return;
+      }
       
-      // First check AsyncStorage for quick determination
-      const isAuthenticated = await AsyncStorage.getItem('isAuthenticated');
-      console.log('💾 AsyncStorage isAuthenticated:', isAuthenticated);
+      console.log('🔍 Checking auth status after initialization...');
       
       const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
       console.log('📋 Onboarding completed:', onboardingCompleted);
       
-      // For now, just check AsyncStorage (we'll add Supabase later)
-      if (isAuthenticated === 'true') {
+      // Use auth context state instead of AsyncStorage
+      if (user) {
         console.log('✅ Auth check complete - redirecting to main app');
+        console.log('🧭 Navigation: Landing → Home {}');
         navigation.navigate('Home'); // Navigate to main app
       } else {
         console.log('👋 No active session found - staying on welcome screen');

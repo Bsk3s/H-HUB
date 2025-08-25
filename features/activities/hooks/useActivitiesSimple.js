@@ -8,6 +8,7 @@ import {
   setDailyProgress,
   fetchDailyProgressRange
 } from '../../../services/activities';
+import { calculateAllStreaks } from '../../../src/services/streaks';
 import { format, subDays, startOfDay } from 'date-fns';
 
 // Activity definitions
@@ -86,23 +87,24 @@ const useActivitiesSimple = () => {
     }
   }, [user?.id]);
 
-  // Calculate streaks for activities
+  // 🔥 STREAKS: Calculate streaks using new centralized service
   const calculateStreaks = useCallback(async () => {
     if (!user?.id || userActivities.length === 0) return {};
     
     try {
-      // Fetch last 30 days of progress for streak calculation
-      const endDate = new Date().toISOString().split('T')[0];
-      const startDate = subDays(new Date(), 30).toISOString().split('T')[0];
-      const progressData = await fetchDailyProgressRange(user.id, startDate, endDate);
+      console.log('📊 Calculating streaks for', userActivities.length, 'activities...');
       
-      // Group by activity type and calculate streaks
+      // Use new centralized streak calculation
+      const activityTypes = userActivities.map(a => a.type);
+      const streaksMap = await calculateAllStreaks(user.id, activityTypes);
+      
+      // Convert to expected format
       const streaks = {};
-      userActivities.forEach(activity => {
-        const activityProgress = progressData.filter(p => p.activity_type === activity.type);
-        streaks[activity.type] = calculateActivityStreak(activityProgress, activity);
+      Object.keys(streaksMap).forEach(activityType => {
+        streaks[activityType] = streaksMap[activityType].current;
       });
       
+      console.log('✅ Calculated all streaks:', streaks);
       return streaks;
     } catch (e) {
       console.error('Failed to calculate streaks:', e);
@@ -179,7 +181,7 @@ const useActivitiesSimple = () => {
           progress: currentProgress,
           originalProgress: baseProgress, // Store original for comparison
           streak: activityStreaks[activity.type] || 0,
-          bestStreak: activity.best_streak || 0,
+          bestStreak: activity.best_streak || 0, // Will be updated via setDailyProgress
         };
       });
       
@@ -210,13 +212,21 @@ const useActivitiesSimple = () => {
     if (!user?.id || totalProgress < 0) return;
     
     try {
-      await setDailyProgress(user.id, activityType, totalProgress);
+      const result = await setDailyProgress(user.id, activityType, totalProgress);
       
       // Update local state to reflect the saved value
       setTodayProgress(prev => ({
         ...prev,
         [activityType]: totalProgress
       }));
+      
+      // 🔥 STREAKS: If streaks were updated, recalculate all activities
+      if (result?.streaks) {
+        console.log('🔥 Streak updated:', result.streaks);
+        // Trigger a refresh of activities to show updated streaks
+        const activityStreaks = await calculateStreaks();
+        setStreaks(activityStreaks);
+      }
       
       // Clear live state for this activity
       clearLiveValue(activityType);
@@ -225,7 +235,7 @@ const useActivitiesSimple = () => {
       console.error('Failed to save progress:', e);
       setError(e);
     }
-  }, [user?.id, clearLiveValue]);
+  }, [user?.id, clearLiveValue, calculateStreaks]);
 
   return {
     activities,

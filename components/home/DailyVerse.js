@@ -1,17 +1,35 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Platform, Linking, Image, Alert, Share as RNShare } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Heart } from 'lucide-react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { captureRef } from 'react-native-view-shot';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import * as Clipboard from 'expo-clipboard';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+
+/*
+ * Daily Verse Component
+ * 
+ * ✅ CONNECTED: Now uses dailyVerseService.js for rotating daily verses
+ * 
+ * TODO for Engineers:
+ * 1. ✅ Connect to dailyVerseService.js ✅ DONE
+ * 2. ✅ Replace hardcoded verse ✅ DONE  
+ * 3. ✅ Daily rotation from 365 verses ✅ DONE
+ * 4. ✅ Keep beautiful card design ✅ DONE
+ * 5. 🚀 RE-ADD SHARING FEATURE - Users want to share daily verses!
+ *    - Add back share icon (top-right)
+ *    - Implement image generation for sharing
+ *    - Include social media integration (Instagram Stories, etc.)
+ * 
+ * Goal: Create an inspiring daily Bible verse experience that users love
+ * to check every day, with smooth animations and beautiful typography.
+ */
+
+import dailyVerseService from '../../src/services/dailyVerseService';
 
 const DailyVerse = () => {
   const [liked, setLiked] = useState(false);
+  const [verse, setVerse] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const storageKey = `dailyVerseLiked:${new Date().toISOString().slice(0, 10)}`; // per-day like
 
@@ -22,6 +40,29 @@ const DailyVerse = () => {
         if (v === '1') setLiked(true);
       } catch {}
     })();
+  }, []);
+
+  // Load today's verse from the service
+  useEffect(() => {
+    const loadTodaysVerse = async () => {
+      try {
+        setLoading(true);
+        const todaysVerse = await dailyVerseService.getTodaysVerse();
+        setVerse(todaysVerse);
+      } catch (error) {
+        console.error('Error loading daily verse:', error);
+        // Fallback verse
+        setVerse({
+          text: "And we have known and believed the love that God has for us. God is love, and he who abides in love abides in God, and God in him.",
+          verse: "1 John 4:16",
+          version: "NKJV"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTodaysVerse();
   }, []);
 
   const toggleLike = async () => {
@@ -35,67 +76,48 @@ const DailyVerse = () => {
 
   // Split verse body and reference if formatted like: "..." - Ref
   const { bodyText, referenceText } = useMemo(() => {
-    const raw = '"Trust in the Lord with all your heart..." - Proverbs 3:5';
-    const idx = raw.lastIndexOf(' - ');
-    if (idx > -1) {
-      return { bodyText: raw.slice(0, idx), referenceText: raw.slice(idx + 3) };
-    }
-    return { bodyText: raw, referenceText: '' };
-  }, []);
+    if (!verse) return { bodyText: '', referenceText: '' };
+    
+    // Use the verse text and reference from the daily verse service
+    const verseText = verse.text;
+    const verseRef = verse.verse;
+    const version = verse.version || 'NKJV';
+    
+    return { 
+      bodyText: `"${verseText}"`, 
+      referenceText: `${verseRef} ${version}` 
+    };
+  }, [verse]);
 
-  // Version pill (until version selection is wired)
-  const versionText = 'NKJV';
+  // Show loading state
+  if (loading || !verse) {
+    return (
+      <View style={{
+        paddingTop: 18,
+        paddingBottom: 28,
+        paddingHorizontal: 22,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.07,
+        shadowRadius: 8,
+        elevation: 3,
+      }}>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 8, letterSpacing: 0.7 }}>DAILY VERSE</Text>
+        <Text style={{ fontSize: 18, color: '#9CA3AF' }}>Loading today's verse...</Text>
+      </View>
+    );
+  }
+
   // Dense poster dynamic typography
   const bodyLen = bodyText.length;
   const quoteFontSize = bodyLen < 70 ? 26 : bodyLen < 120 ? 24 : 22;
   const quoteLineHeight = bodyLen < 70 ? 36 : bodyLen < 120 ? 34 : 32;
-  const cardRef = useRef(null);
-  const [isExporting, setIsExporting] = useState(false);
 
-  const handleShare = async () => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setIsExporting(true);
-      await new Promise(r => setTimeout(r, 60));
-      const target = cardRef.current || cardRef; // ensure we pass a native ref
-      const uri = await captureRef(target, { format: 'png', quality: 1, result: 'tmpfile' });
-
-      // Primary: React Native share (guaranteed to show UI)
-      try {
-        await RNShare.share({ url: uri, message: 'Daily Verse' });
-      } catch {}
-
-      // Secondary: Expo Sharing (if available)
-      try {
-        const sharingAvailable = await Sharing.isAvailableAsync();
-        if (sharingAvailable) {
-          await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share Daily Verse' });
-        }
-      } catch {}
-
-      // Tertiary: Instagram Stories attempt (best-effort)
-      try {
-        const igScheme = Platform.OS === 'ios' ? 'instagram-stories://share' : 'https://www.instagram.com';
-        const canIG = await Linking.canOpenURL(igScheme);
-        if (canIG && Clipboard?.setImageAsync && Platform.OS === 'ios') {
-          const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-          await Clipboard.setImageAsync(`data:image/png;base64,${base64}`);
-          await Linking.openURL('instagram-stories://share');
-        }
-      } catch {}
-    } catch (e) {
-      try {
-        Alert.alert('Share failed', typeof e?.message === 'string' ? e.message : 'Unable to share.');
-      } catch {}
-    }
-    finally {
-      setIsExporting(false);
-    }
-  };
 
   return (
     <View
-      ref={cardRef}
       style={{
         paddingTop: 18,
         paddingBottom: 28,
@@ -126,24 +148,13 @@ const DailyVerse = () => {
         </Svg>
       </View>
 
-      {/* Share icon (top-right) - hidden during export */}
-      {!isExporting && (
-        <TouchableOpacity
-          onPress={handleShare}
-          accessibilityRole="button"
-          accessibilityLabel="Share daily verse"
-          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-          style={{ position: 'absolute', top: 14, right: 14 }}
-        >
-          <Ionicons name={Platform.OS === 'ios' ? 'ios-share-outline' : 'share-outline'} size={20} color="#A0AEC0" />
-        </TouchableOpacity>
-      )}
+
 
       <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 8, letterSpacing: 0.7 }}>DAILY VERSE</Text>
       <Text style={{ fontSize: quoteFontSize, color: '#111827', lineHeight: quoteLineHeight }}>{bodyText}</Text>
       {!!referenceText && (
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-          <Text style={{ fontSize: 14, color: '#6B7280' }}>— {referenceText}</Text>
+          <Text style={{ fontSize: 14, color: '#6B7280' }}>— {referenceText.split(' ')[0]} {referenceText.split(' ')[1]}</Text>
           <View
             style={{
               marginLeft: 8,
@@ -153,13 +164,12 @@ const DailyVerse = () => {
               backgroundColor: '#F1F5F9',
             }}
           >
-            <Text style={{ fontSize: 12, color: '#475569', fontWeight: '600' }}>{versionText}</Text>
+            <Text style={{ fontSize: 12, color: '#475569', fontWeight: '600' }}>{referenceText.split(' ')[2] || 'NKJV'}</Text>
           </View>
         </View>
       )}
 
-      {/* Bottom-right heart button (hidden during export) */}
-      {!isExporting && (
+      {/* Bottom-right heart button */}
       <TouchableOpacity
         onPress={toggleLike}
         style={{
@@ -178,18 +188,6 @@ const DailyVerse = () => {
           strokeWidth={2}
         />
       </TouchableOpacity>
-      )}
-
-      {/* Watermark (export-only) */}
-      {isExporting && (
-        <View style={{ position: 'absolute', bottom: 18, left: 0, right: 0, alignItems: 'center' }}>
-          <Image
-            source={require('../../assets/branding/HBMAIN1.png')}
-            resizeMode="contain"
-            style={{ width: 220, height: 60, opacity: 0.6 }}
-          />
-        </View>
-      )}
     </View>
   );
 };

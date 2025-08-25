@@ -133,13 +133,13 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const handleEditProfile = () => {
-    console.log('📝 Edit Profile pressed - TODO: Create EditProfileScreen');
-    Alert.alert('Coming Soon', 'Edit profile feature will be available soon.');
+    console.log('📝 Edit Profile pressed - navigating to EditProfile');
+    navigation.navigate('EditProfile');
   };
 
   const handleChangePassword = () => {
-    console.log('🔒 Change Password pressed - TODO: Create ChangePasswordScreen');
-    Alert.alert('Coming Soon', 'Change password feature will be available soon.');
+    console.log('🔒 Change Password pressed - navigating to ChangePassword');
+    navigation.navigate('ChangePassword');
   };
 
   const handleBibleVersionSettings = () => {

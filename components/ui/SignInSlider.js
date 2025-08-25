@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Svg, Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/auth/context';
+import { useFeedbackContext } from '../../src/components/feedback/FeedbackProvider';
 
 const AppleIcon = () => (
   <Svg width="24" height="24" viewBox="0 0 24 24">
@@ -31,6 +32,7 @@ export default function SignInSlider({ isOpen, onClose, navigation }) {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(isOpen ? 0 : 1)).current;
   const { signInWithGoogle, signInWithApple, loading, error } = useAuth();
+  const { showError } = useFeedbackContext();
   const [localError, setLocalError] = useState('');
   
   useEffect(() => {
@@ -91,10 +93,20 @@ export default function SignInSlider({ isOpen, onClose, navigation }) {
       if (success) {
         console.log('✅ Apple Sign In successful');
         onClose(); // Close the slider on success
+      } else {
+        // Check if there's an error from the auth context and show it via toast
+        if (error?.message) {
+          console.log('Apple Sign In failed with error:', error.message);
+          showError(error.message);
+        } else {
+          showError('Unable to sign in with Apple. Please try again.');
+        }
       }
     } catch (err) {
       console.error('Apple Sign In error:', err);
-      setLocalError(err.message || 'Failed to sign in with Apple');
+      const errorMessage = err.message || 'Failed to sign in with Apple';
+      setLocalError(errorMessage);
+      showError(errorMessage);
     }
   };
 

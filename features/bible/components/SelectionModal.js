@@ -62,9 +62,13 @@ const SelectionModal = ({
               isBookSelection && styles.bookList
             ]}
             showsVerticalScrollIndicator={false}
-            initialNumToRender={20}
-            maxToRenderPerBatch={20}
-            windowSize={5}
+            // 🚀 PERFORMANCE: Enhanced virtualization for selection modals
+            initialNumToRender={15}
+            maxToRenderPerBatch={10}
+            windowSize={8}
+            updateCellsBatchingPeriod={100}
+            removeClippedSubviews={true}
+            scrollEventThrottle={16}
           />
         </View>
       </SafeAreaView>

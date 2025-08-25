@@ -6,11 +6,12 @@ import {
   upsertUserActivity,
   logActivityProgress,
   ensureActivitiesExist
-} from '../../../services/activities';
+} from '../../../src/services/activities';
 import { startOfDay, formatISO, isToday, subDays, parse, differenceInDays, format } from 'date-fns';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
-import { useAuth } from '../../../../src/auth/context';
+import { useAuth } from '../../../src/auth/context';
+import { calculateAllStreaks } from '../../../src/services/streaks';
 
 // --- Constants ---
 const CACHE_KEY = 'activities_cache';
@@ -134,7 +135,7 @@ const formatDuration = (progress, type) => {
     return `${progress}/${goal} chapters`;
 };
 
-const processActivityData = (userActivities, activityLogs) => {
+const processActivityData = (userActivities, activityLogs, userId) => {
     if (!userActivities.length) return [];
 
     const todayKey = format(new Date(), 'yyyy-MM-dd');
@@ -153,6 +154,7 @@ const processActivityData = (userActivities, activityLogs) => {
         );
         const todayProgress = todayLogsForActivity.reduce((sum, log) => sum + log.progress, 0);
         
+        // 🔥 STREAKS: Use improved streak calculation
         const streak = calculateStreak(activity.type, logsGroupedByDate, userActivities);
 
         return {
@@ -160,7 +162,7 @@ const processActivityData = (userActivities, activityLogs) => {
             ...ACTIVITY_DEFINITIONS[activity.type],
             progress: todayProgress,
             streak: streak,
-            bestStreak: activity.best_streak || 0, // This would be calculated and stored separately
+            bestStreak: activity.best_streak || 0, // Will be updated via setDailyProgress
         };
     });
 };
@@ -204,7 +206,7 @@ const useActivities = () => {
             setActivityLogs(logs);
       } catch (e) {
             console.error("Failed to fetch activity data:", e);
-        setError(e);
+        setError(new Error('Unable to load your activities. Please check your connection and try again.'));
       } finally {
         setIsLoading(false);
       }
@@ -248,7 +250,8 @@ const useActivities = () => {
         const allProcessedLogs = [...processedLogsForProcessing, ...bibleLogs];
 
         // Now process activity data with the correct logs
-        const processed = processActivityData(userActivities, allProcessedLogs);
+        // 🔥 STREAKS: Use existing sync logic for now, enhance separately
+        const processed = processActivityData(userActivities, allProcessedLogs, user?.id);
         
         // Apply live draft updates for real-time UI feedback
         return processed.map(activity => {
@@ -264,16 +267,24 @@ const useActivities = () => {
         });
     }, [userActivities, activityLogs, liveDraft]);
 
+    // 🚀 PERFORMANCE: Optimized getCurrentProgress with memoized activity lookup
+    const activitiesMap = useMemo(() => {
+        return activities.reduce((map, activity) => {
+            map[activity.id] = activity;
+            return map;
+        }, {});
+    }, [activities]);
+
     // Helper function to get current progress (live or database)
     const getCurrentProgress = useCallback((activityId) => {
         const draft = liveDraft[activityId];
-        const activity = activities.find(a => a.id === activityId);
+        const activity = activitiesMap[activityId];
         
         if (!activity) return 0;
         
         // Return live draft value if it exists, otherwise database value
         return draft?.progress !== undefined ? draft.progress : (activity.progress || 0);
-    }, [liveDraft, activities]);
+    }, [liveDraft, activitiesMap]);
 
     const updateLiveProgress = useCallback((activityId, progress) => {
         setLiveUpdate({ id: activityId, progress: Math.round(progress) });

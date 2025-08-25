@@ -8,7 +8,11 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useLiveKitVoiceChat } from '../app/hooks/useLiveKitVoiceChat';
-import { useNavigation } from '@react-navigation/native';
+// Removed useNavigation as we use custom navigation from App.js
+import { showErrorAlert, showRetryErrorAlert, getUserFriendlyErrorMessage } from '../src/utils/errorHandling';
+import ErrorBoundary from '../src/components/ErrorBoundary';
+import PressableWithFeedback from '../src/components/feedback/PressableWithFeedback';
+import { useFeedbackContext } from '../src/components/feedback/FeedbackProvider';
 
 // Import beautiful HB1 chat components
 import AIToggle from '../app/components/chat/AIToggle';
@@ -18,11 +22,67 @@ import VoiceControls from '../app/components/chat/VoiceControls';
 import useVoiceAnimation from '../app/components/chat/useVoiceAnimation';
 
 // Full LiveKit Voice Chat integrated into Chat tab
-const Chat = () => {
-  const navigation = useNavigation();
+const Chat = ({ navigation }) => {
   const [logs, setLogs] = useState([]);
   const [activeAI, setActiveAI] = useState('adina'); // Lowercase for HB1 compatibility
   const scrollViewRef = useRef(null);
+  const { showInfo } = useFeedbackContext();
+  
+  // Handle Bible navigation with feedback
+  const handleBibleNavigation = () => {
+    console.log('📖 Bible button pressed - navigating to Bible');
+    showInfo('Opening Bible...', { duration: 1500 });
+    navigation.navigate('Bible');
+  };
+  
+  // Friendly Error Message Helpers
+  const getFriendlyErrorTitle = (error) => {
+    if (!error) return "Something went wrong";
+    
+    if (error.includes('Microphone') || error.includes('microphone')) {
+      return "Need microphone access";
+    }
+    if (error.includes('Connection failed') || error.includes('network') || error.includes('timeout')) {
+      return "Can't connect right now";
+    }
+    if (error.includes('Authentication') || error.includes('token') || error.includes('auth')) {
+      return "Session expired";
+    }
+    if (error.includes('Server') || error.includes('500') || error.includes('unavailable')) {
+      return `${activeAI?.charAt(0).toUpperCase() + activeAI?.slice(1) || 'AI'} is taking a break`;
+    }
+    return "Something's not working";
+  };
+
+  const getFriendlyErrorMessage = (error) => {
+    if (!error) return "Tap to try again";
+    
+    if (error.includes('Microphone') || error.includes('microphone')) {
+      return "Go to Settings > Privacy > Microphone to allow access";
+    }
+    if (error.includes('Connection failed') || error.includes('network') || error.includes('timeout')) {
+      return "Check your wifi or mobile data, then try again";
+    }
+    if (error.includes('Authentication') || error.includes('token') || error.includes('auth')) {
+      return "Close and reopen the app to reconnect";
+    }
+    if (error.includes('Server') || error.includes('500') || error.includes('unavailable')) {
+      return "Our voice chat is temporarily down. Try again in a few minutes";
+    }
+    return "Don't worry, let's try again together";
+  };
+
+  const getRetryButtonText = (error) => {
+    if (!error) return "Try Again";
+    
+    if (error.includes('Microphone') || error.includes('microphone')) {
+      return "Open Settings";
+    }
+    if (error.includes('Authentication') || error.includes('token') || error.includes('auth')) {
+      return "Restart App";
+    }
+    return "Try Again";
+  };
   
   // HB1 Voice Animation Hook
   const {
@@ -42,6 +102,7 @@ const Chat = () => {
   ];
   
   const {
+    conversationState,
     isListening,
     isRecording,
     isPlaying,
@@ -135,31 +196,47 @@ const Chat = () => {
       }
     } catch (error) {
       console.error('❌ Error sending quick reply:', error);
+      showErrorAlert(error, 'Message Failed', () => {
+        // Optionally retry or clear the error state
+        console.log('User acknowledged message error');
+      });
     }
   };
 
   const connectionStatus = isConnected ? 'Connected' : 'Disconnected';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ErrorBoundary 
+      screenName="Chat"
+      onRetry={() => {
+        // Reset chat state and reconnect
+        console.log('🔄 Retrying Chat screen...');
+      }}
+    >
+      <SafeAreaView style={styles.container}>
       {/* AI Selection Header - Clean and minimal */}
       <View style={styles.floatingHeader}>
-        {/* Bible Quick Access */}
-        <TouchableOpacity 
-          style={styles.bibleButton}
-          onPress={() => navigation.navigate('Bible')}
-          accessible={true}
-          accessibilityLabel="Open Bible"
-          accessibilityRole="button"
-        >
-          <Text style={styles.bibleIcon}>📖</Text>
-        </TouchableOpacity>
-
-        {/* Beautiful HB1 AI Toggle */}
-        <AIToggle 
-          activeAI={activeAI} 
-          setActiveAI={setActiveAI} 
-        />
+        {/* Header Row with centered AI Toggle and right-aligned Bible Button */}
+        <View style={styles.headerRow}>
+          {/* Spacer for centering */}
+          <View style={styles.spacer} />
+          
+          {/* Beautiful HB1 AI Toggle - Centered */}
+          <AIToggle 
+            activeAI={activeAI} 
+            setActiveAI={setActiveAI} 
+          />
+          
+          {/* Bible Quick Access - Right aligned */}
+          <PressableWithFeedback 
+            style={styles.bibleButtonInline}
+            onPress={handleBibleNavigation}
+            hapticType="light"
+            scaleValue={0.95}
+          >
+            <Text style={styles.bibleIcon}>📖</Text>
+          </PressableWithFeedback>
+        </View>
         
         {/* Connection Status - More spacing */}
         <View style={styles.statusContainer}>
@@ -212,25 +289,60 @@ const Chat = () => {
         />
       </View>
 
-      {/* Status Message - Between replies and controls */}
+      {/* Enhanced Status Message with Better Error Handling */}
       <View style={styles.statusSection}>
         {error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={styles.modernErrorContainer}>
+            <View style={styles.errorIcon}>
+              <Text style={styles.errorIconText}>😔</Text>
+            </View>
+            <View style={styles.errorContent}>
+              <Text style={styles.errorTitle}>
+                {getFriendlyErrorTitle(error)}
+              </Text>
+              <Text style={styles.errorMessage}>
+                {getFriendlyErrorMessage(error)}
+              </Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={() => {
+                  clearError();
+                  // Smart retry based on error type
+                  if (error.includes('Connection failed') || error.includes('Connection lost') || error.includes('Microphone')) {
+                    handleVoiceAction();
+                  }
+                }}
+                accessible={true}
+                accessibilityLabel="Retry connection"
+              >
+                <Text style={styles.retryButtonText}>
+                  {getRetryButtonText(error)}
+                </Text>
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity 
-              style={styles.dismissButton}
+              style={styles.modernDismissButton}
               onPress={clearError}
               accessible={true}
               accessibilityLabel="Dismiss error"
             >
-              <Text style={styles.dismissText}>✕</Text>
+              <Text style={styles.modernDismissText}>✕</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <Text style={styles.statusMessageText}>
-            {isConnected ? '✨ Ready for conversation' : 
-             isActive ? '🔄 Connecting...' : '🎤 Tap mic to start'}
-          </Text>
+          <View style={styles.statusMessageContainer}>
+            <Text style={styles.statusMessageText}>
+              {isConnected ? '✨ Ready for conversation' : 
+               isActive ? '🔄 Connecting...' : 
+               (conversationState === 'error' || conversationState === 'failed') ? '😔 Connection trouble' :
+               '🎤 Tap mic to start'}
+            </Text>
+            {isConnected && (
+              <Text style={styles.statusSubtext}>
+                Speak naturally or tap a quick reply
+              </Text>
+            )}
+          </View>
         )}
       </View>
 
@@ -243,12 +355,14 @@ const Chat = () => {
         setShowQuickReplies={() => {}}
         isConnected={isConnected}
         isSessionActive={isActive}
-        conversationState={isConnected ? 'connected' : isActive ? 'connecting' : 'disconnected'}
+        conversationState={isConnected ? 'connected' : isActive ? 'connecting' : error ? 'error' : 'disconnected'}
         onEndConversation={endVoiceChat}
+        hasError={!!error}
       />
 
 
     </SafeAreaView>
+    </ErrorBoundary>
   );
 };
 
@@ -266,10 +380,18 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 10,
   },
-  bibleButton: {
-    position: 'absolute',
-    top: 20,
-    right: 24,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  spacer: {
+    width: 44, // Same width as Bible button to balance the layout
+  },
+  bibleButtonInline: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -303,6 +425,74 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     // Clean separation
   },
+  modernErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    maxWidth: '95%',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  errorIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  errorIconText: {
+    fontSize: 20,
+  },
+  errorContent: {
+    flex: 1,
+  },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#dc2626',
+    marginBottom: 4,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#991b1b',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modernDismissButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  modernDismissText: {
+    fontSize: 18,
+    color: '#9ca3af',
+    fontWeight: '500',
+  },
+  statusMessageContainer: {
+    alignItems: 'center',
+  },
+  statusSubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  // Legacy error styles (keep for backward compatibility)
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -32,7 +32,7 @@ const RealStuffSection = ({ cards, onCardPress }) => {
         ))}
       </ScrollView>
       <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 12, textAlign: 'center', fontWeight: '500' }}>
-        Swipe through today's reflections • New cards every morning
+        Swipe through today's reflections
       </Text>
     </View>
   );

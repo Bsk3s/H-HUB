@@ -33,18 +33,18 @@ export async function signInWithApple() {
  * This would typically be called from your deep link handler
  */
 export async function handleAuthCallback(url) {
-  console.log('📲 Auth callback received URL:', url);
+  console.log('Auth callback received URL:', url);
   
   // Extract the token from the URL
   try {
     // Log URL components for debugging
     if (url) {
-      console.log('🔍 Parsing URL components...');
+      console.log('Parsing URL components...');
       
       // Extract hash fragment (everything after #)
       const hashIndex = url.indexOf('#');
       if (hashIndex !== -1) {
-        console.log('# Found hash fragment in URL');
+        console.log('Found hash fragment in URL');
         const hashFragment = url.substring(hashIndex + 1);
         const params = new URLSearchParams(hashFragment);
         
@@ -54,11 +54,11 @@ export async function handleAuthCallback(url) {
         const expiresIn = params.get('expires_in');
         const tokenType = params.get('token_type');
         
-        console.log('🔑 Access token present:', !!accessToken);
-        console.log('🔄 Refresh token present:', !!refreshToken);
+        console.log('Access token present:', !!accessToken);
+        console.log('Refresh token present:', !!refreshToken);
         
         if (accessToken) {
-          console.log('✅ Found access_token in hash fragment, setting session manually');
+          console.log('Found access_token in hash fragment, setting session manually');
           try {
             // Try to set the session manually using the extracted tokens
             const { data, error } = await supabase.auth.setSession({
@@ -67,11 +67,11 @@ export async function handleAuthCallback(url) {
             });
             
             if (error) {
-              console.error('❌ Error setting session:', error);
+              console.error('Error setting session:', error);
               throw error;
             }
             
-            console.log('✅ Session set successfully, user:', data?.user?.email);
+            console.log('Session set successfully, user:', data?.user?.email);
             return { success: true, session: data.session, user: data.user };
           } catch (sessionError) {
             console.error('❌ Error setting session manually:', sessionError);
@@ -92,6 +92,25 @@ export async function handleAuthCallback(url) {
       console.log('URL host:', urlObj.host);
       console.log('URL pathname:', urlObj.pathname);
       console.log('URL search params:', urlObj.search);
+      
+      // Check for OAuth errors first
+      const error = urlObj.searchParams.get('error');
+      const errorCode = urlObj.searchParams.get('error_code');
+      const errorDescription = urlObj.searchParams.get('error_description');
+      
+      if (error) {
+        console.error('❌ OAuth error detected:', { error, errorCode, errorDescription });
+        
+        // Handle specific OAuth errors with helpful messages
+        if (error === 'server_error' && errorDescription?.includes('Unable to exchange external code')) {
+          // This often happens when email already exists with different provider
+          throw new Error('This email is already registered. Please sign in with your existing account or use a different email.');
+        } else if (error === 'access_denied') {
+          throw new Error('Sign-in was cancelled.');
+        }
+        
+        throw new Error('Unable to sign in. Please try again.');
+      }
       
       // Extract any potential code
       const code = urlObj.searchParams.get('code');

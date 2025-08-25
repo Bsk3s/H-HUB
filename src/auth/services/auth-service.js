@@ -50,7 +50,7 @@ export async function signInWithOAuth(provider) {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: 'https://app.a-heavenlyhub.com/auth/v1/callback',
+        redirectTo: 'com.bsk3s.heavenlyhub://auth/callback',
       },
     });
     

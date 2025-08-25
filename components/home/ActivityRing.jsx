@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Star, Heart, BookOpen, Sun, Moon } from 'lucide-react-native';
@@ -11,66 +11,82 @@ const ICONS = {
   Star, // Fallback
 };
 
-const ActivityRing = ({ activity, onClick, size: customSize, hideText = false, isCalendarView = false, date, color: propColor, getCurrentProgress }) => {
+const ActivityRing = React.memo(({ activity, onClick, size: customSize, hideText = false, isCalendarView = false, date, color: propColor, getCurrentProgress }) => {
   const { title, progress, dailyGoal, streak, color: activityColor = "blue", icon: iconName } = activity;
   const Icon = ICONS[iconName] || ICONS.Star;
   
   // Use propColor if provided, otherwise fall back to activityColor
   const color = propColor || activityColor;
   
-  // Ring configuration
-  const size = customSize || 100;
-  // Slightly heavier stroke for stronger presence
-  const strokeWidth = isCalendarView ? size * 0.12 : (hideText ? size * 0.16 : size * 0.14);
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
+  // 🚀 PERFORMANCE: Memoize expensive ring calculations
+  const ringConfig = useMemo(() => {
+    const size = customSize || 100;
+    // Slightly heavier stroke for stronger presence
+    const strokeWidth = isCalendarView ? size * 0.12 : (hideText ? size * 0.16 : size * 0.14);
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    
+    return { size, strokeWidth, radius, circumference };
+  }, [customSize, isCalendarView, hideText]);
   
-  // Use live progress if available, otherwise fall back to stored progress
-  const goal = isCalendarView ? 100 : (dailyGoal || 1);
-  const currentProgress = getCurrentProgress ? getCurrentProgress(activity.id) : (progress || 0);
+  const { size, strokeWidth, radius, circumference } = ringConfig;
   
-  // Simple progress calculation - percentage of goal completed (max 100%)
-  const progressPercentage = goal > 0 ? Math.min((currentProgress / goal) * 100, 100) : 0;
-  const isComplete = currentProgress >= goal;
+  // 🚀 PERFORMANCE: Memoize progress calculations
+  const progressData = useMemo(() => {
+    // Use live progress if available, otherwise fall back to stored progress
+    const goal = isCalendarView ? 100 : (dailyGoal || 1);
+    const currentProgress = getCurrentProgress ? getCurrentProgress(activity.id) : (progress || 0);
+    
+    // Simple progress calculation - percentage of goal completed (max 100%)
+    const progressPercentage = goal > 0 ? Math.min((currentProgress / goal) * 100, 100) : 0;
+    const isComplete = currentProgress >= goal;
+    
+    const progressOffset = circumference - (progressPercentage / 100) * circumference;
+    
+    return { goal, currentProgress, progressPercentage, isComplete, progressOffset };
+  }, [isCalendarView, dailyGoal, getCurrentProgress, activity.id, progress, circumference]);
   
-  const progressOffset = circumference - (progressPercentage / 100) * circumference;
+  const { goal, currentProgress, progressPercentage, isComplete, progressOffset } = progressData;
   
-  // Map legacy color names to new color names
-  const colorNameMap = {
-    'red': 'rose',
-    'orange': 'amber',
-    'purple': 'indigo'
-  };
+  // 🚀 PERFORMANCE: Memoize color calculations
+  const colors = useMemo(() => {
+    // Map legacy color names to new color names
+    const colorNameMap = {
+      'red': 'rose',
+      'orange': 'amber',
+      'purple': 'indigo'
+    };
 
-  // Convert legacy color names to new color names
-  const normalizedColorName = colorNameMap[color] || color;
-  
-  // Professional, high-contrast colors - KEEP ORIGINAL COLORS ALWAYS
-  const colorMap = {
-    rose: {
-      ring: '#ff2d55', // Always red
-      bg: '#fff1f2',
-      inactiveRing: 'rgba(255, 45, 85, 0.1)'
-    },
-    blue: {
-      ring: '#0a84ff', // Always blue  
-      bg: '#dbeafe',
-      inactiveRing: 'rgba(10, 132, 255, 0.1)'
-    },
-    amber: {
-      ring: '#ffcc00', // Always yellow
-      bg: '#fffbeb', 
-      inactiveRing: 'rgba(255, 204, 0, 0.1)'
-    },
-    indigo: {
-      ring: '#bf5af2', // Always purple
-      bg: '#eef2ff',
-      inactiveRing: 'rgba(191, 90, 242, 0.1)'
-    }
-  };
-  
-  // Use the activity's color or fallback to blue
-  const colors = colorMap[normalizedColorName] || colorMap.blue;
+    // Convert legacy color names to new color names
+    const normalizedColorName = colorNameMap[color] || color;
+    
+    // Professional, high-contrast colors - KEEP ORIGINAL COLORS ALWAYS
+    const colorMap = {
+      rose: {
+        ring: '#ff2d55', // Always red
+        bg: '#fff1f2',
+        inactiveRing: 'rgba(255, 45, 85, 0.1)'
+      },
+      blue: {
+        ring: '#0a84ff', // Always blue  
+        bg: '#dbeafe',
+        inactiveRing: 'rgba(10, 132, 255, 0.1)'
+      },
+      amber: {
+        ring: '#ffcc00', // Always yellow
+        bg: '#fffbeb', 
+        inactiveRing: 'rgba(255, 204, 0, 0.1)'
+      },
+      indigo: {
+        ring: '#bf5af2', // Always purple
+        bg: '#eef2ff',
+        inactiveRing: 'rgba(191, 90, 242, 0.1)'
+      }
+    };
+    
+    // Use the activity's color or fallback to blue
+    return colorMap[normalizedColorName] || colorMap.blue;
+  }, [color]);
 
   // Format display text
   const formatDisplayText = () => {
@@ -209,6 +225,9 @@ const ActivityRing = ({ activity, onClick, size: customSize, hideText = false, i
       )}
     </TouchableOpacity>
   );
-};
+});
+
+// 🚀 PERFORMANCE: Add display name for better debugging
+ActivityRing.displayName = 'ActivityRing';
 
 export default ActivityRing;

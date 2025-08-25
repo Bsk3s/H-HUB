@@ -2,13 +2,15 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Import WebBrowser properly
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { handleAuthCallback } from './services/social-auth';
 import * as AuthSession from 'expo-auth-session';
-import { Linking, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
 // Import Supabase client and services
 import { supabase } from './supabase-client';
 import { signInWithEmail, signUpWithEmail, signOut as supabaseSignOut, resetPassword as supabaseResetPassword } from './services/auth-service';
-import { signInWithGoogle as supabaseSignInWithGoogle, signInWithApple as supabaseSignInWithApple, handleAuthCallback } from './services/social-auth';
+import { signInWithGoogle as supabaseSignInWithGoogle, signInWithApple as supabaseSignInWithApple } from './services/social-auth';
 import { ensureUserProfile } from './services/profile-service';
 
 // Create a context for authentication
@@ -24,37 +26,16 @@ const AuthProvider = ({ children }) => {
   // Clear any auth errors
   const clearError = () => setError(null);
 
-  // Helper function to log auth state to console
+  // Helper function to log auth state to console (simplified)
   const logAuthState = async (label) => {
-    console.log(`📊 AUTH STATE [${label}]:`);
-    console.log(`🔑 User state: ${user ? 'Authenticated' : 'Not authenticated'}`);
-    console.log(`⏳ Initializing: ${initializing}`);
-    console.log(`🔄 Loading: ${loading}`);
-    console.log(`❌ Error: ${error ? error.message : 'none'}`);
-    
-    // Check supabase session
-    try {
-      const { data } = await supabase.auth.getSession();
-      console.log(`🔐 Supabase session: ${data?.session ? 'exists' : 'null'}`);
-      if (data?.session) {
-        console.log(`👤 Session user: ${data.session.user.email}`);
-        console.log(`⏰ Session expires: ${new Date(data.session.expires_at * 1000).toLocaleString()}`);
+    // Only log during critical moments, not continuously
+    if (label === 'after initialization') {
+      try {
+        const { data } = await supabase.auth.getSession();
+        console.log(`✅ Auth initialized: ${data?.session ? `Logged in as ${data.session.user.email}` : 'Not logged in'}`);
+      } catch (err) {
+        console.error('❌ Auth initialization error:', err.message);
       }
-    } catch (err) {
-      console.error('Error checking Supabase session:', err);
-    }
-    
-    // Check AsyncStorage auth state
-    try {
-      const isAuth = await AsyncStorage.getItem('isAuthenticated');
-      console.log(`💾 AsyncStorage isAuthenticated: ${isAuth}`);
-      
-      // Check if session is stored in AsyncStorage directly
-      const keys = await AsyncStorage.getAllKeys();
-      const authKeys = keys.filter(key => key.includes('supabase.auth'));
-      console.log(`📦 Auth keys in AsyncStorage: ${authKeys.length > 0 ? authKeys.join(', ') : 'none'}`);
-    } catch (err) {
-      console.error('Error checking AsyncStorage:', err);
     }
   };
 
@@ -64,37 +45,32 @@ const AuthProvider = ({ children }) => {
     
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔔 Auth state changed:', event);
-      console.log('🔑 Session after change:', session ? 'exists' : 'null');
-      
-      if (session?.user) {
-        console.log('👤 User email:', session.user.email);
-        console.log('🆔 User ID:', session.user.id);
-        // Set auth flag in AsyncStorage
-        AsyncStorage.setItem('isAuthenticated', 'true')
-          .then(() => console.log('✅ AsyncStorage isAuthenticated set to true'))
-          .catch(err => console.error('❌ Error setting isAuthenticated:', err));
-      } else if (event === 'SIGNED_OUT') {
-        // Clear auth flag in AsyncStorage
-        AsyncStorage.setItem('isAuthenticated', 'false')
-          .then(() => console.log('✅ AsyncStorage isAuthenticated set to false'))
-          .catch(err => console.error('❌ Error clearing isAuthenticated:', err));
+      // Only log significant auth changes to reduce spam
+      if (event !== 'TOKEN_REFRESHED') {
+        console.log('🔔 Auth state changed:', event);
       }
       
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        console.log('✅ User authenticated:', session.user.email);
+        setUser(session.user);
+        // Set auth flag in AsyncStorage
+        AsyncStorage.setItem('isAuthenticated', 'true');
+      } else {
+        console.log('🚪 User signed out or no session');
+        setUser(null);
+        // Clear auth flag in AsyncStorage
+        AsyncStorage.setItem('isAuthenticated', 'false');
+      }
       setInitializing(false);
     });
 
     // Get current session
     const getInitialSession = async () => {
-      console.log('🔍 Getting initial session...');
       try {
         // Check AsyncStorage first for quick auth check
         const storedAuthState = await AsyncStorage.getItem('isAuthenticated');
-        console.log('💾 Stored auth state from AsyncStorage:', storedAuthState);
         
         // Get actual session from Supabase
-        console.log('🔄 Requesting session from Supabase...');
         const { data, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -102,19 +78,14 @@ const AuthProvider = ({ children }) => {
           throw sessionError;
         }
         
-        console.log('🔐 Initial session retrieved:', data.session ? 'exists' : 'null');
         if (data.session) {
-          console.log('👤 Session user email:', data.session.user.email);
-          
           // Ensure AsyncStorage matches Supabase state
           if (storedAuthState !== 'true') {
-            console.log('⚠️ AsyncStorage auth state out of sync, updating...');
             await AsyncStorage.setItem('isAuthenticated', 'true');
           }
         } else {
           // No session, ensure AsyncStorage is consistent
           if (storedAuthState === 'true') {
-            console.log('⚠️ AsyncStorage claims auth but no session exists, fixing...');
             await AsyncStorage.setItem('isAuthenticated', 'false');
           }
         }
@@ -123,7 +94,6 @@ const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error('❌ Error checking auth state:', err);
       } finally {
-        console.log('✅ Initial session check complete');
         setInitializing(false);
         // Log final state after initialization
         logAuthState('after initialization');
@@ -133,15 +103,51 @@ const AuthProvider = ({ children }) => {
     getInitialSession();
 
     // Clean up subscription
+    // Set up deep link listener for OAuth callbacks
+    const handleDeepLink = async (url) => {
+      console.log('🔗 Deep link received:', url);
+      
+      if (url && url.includes('auth/callback')) {
+        console.log('📱 Handling OAuth callback...');
+        try {
+          const result = await handleAuthCallback(url);
+          if (result.success && result.session) {
+            console.log('✅ OAuth callback successful, user:', result.user?.email);
+            setUser(result.user);
+            await AsyncStorage.setItem('isAuthenticated', 'true');
+          } else {
+            console.error('❌ OAuth callback failed:', result.error);
+          }
+        } catch (error) {
+          console.error('❌ Error handling OAuth callback:', error);
+        }
+      }
+    };
+
+    // Listen for deep links
+    const linkingSubscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check if app was opened with a deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        console.log('🚀 App opened with deep link:', url);
+        handleDeepLink(url);
+      }
+    });
+
     return () => {
       console.log('🧹 Cleaning up auth listener subscription');
       authListener?.subscription?.unsubscribe();
+      linkingSubscription?.remove();
     };
   }, []);
 
-  // Log auth state changes
+  // Log only significant auth state changes (reduce spam)
   useEffect(() => {
-    logAuthState('user state changed');
+    // Only log when auth state actually changes (not during initialization)
+    if (!initializing) {
+      console.log(`🔔 Auth state: ${user ? `✅ Authenticated (${user.email})` : '❌ Not authenticated'}`);
+    }
   }, [user, initializing]);
 
   // Email/Password Login
@@ -219,7 +225,8 @@ const AuthProvider = ({ children }) => {
         console.log('👤 Existing user:', existingSession.session.user.email);
       }
       
-      const redirectUrl = 'heavenlyhub://auth/callback';
+      // For EAS builds, always use the production scheme
+      const redirectUrl = 'com.bsk3s.heavenlyhub://auth/callback';
       console.log('🔗 Using redirectTo:', redirectUrl);
       
       const { data, error: signInError } = await supabase.auth.signInWithOAuth({
@@ -237,6 +244,9 @@ const AuthProvider = ({ children }) => {
 
       if (data?.url) {
         console.log('📱 Opening auth session in browser...');
+        console.log('🌐 OAuth URL:', data.url);
+        console.log('🔗 Expected redirect:', redirectUrl);
+        
         const result = await WebBrowser.openAuthSessionAsync(
           data.url,
           redirectUrl,
@@ -246,26 +256,60 @@ const AuthProvider = ({ children }) => {
           }
         );
         console.log('🔄 Auth session result:', result.type);
+        
+        if (result.type === 'success' && result.url) {
+          console.log('✅ Redirect URL received:', result.url);
+        }
 
         if (result.type === 'success') {
-          // Force session refresh
-          console.log('🔄 Refreshing session...');
-          const { data: newSession, error: sessionError } = await supabase.auth.getSession();
+          console.log('✅ OAuth browser session completed successfully');
           
-          if (sessionError) {
-            console.error('❌ Session refresh error:', sessionError);
-            throw sessionError;
+          // Try to handle the redirect URL directly if available
+          if (result.url) {
+            console.log('🔗 Handling redirect URL directly:', result.url);
+            try {
+              const callbackResult = await handleAuthCallback(result.url);
+              if (callbackResult.success && callbackResult.session) {
+                console.log('✅ OAuth session established directly from redirect');
+                setUser(callbackResult.user);
+                await AsyncStorage.setItem('isAuthenticated', 'true');
+                return true;
+              }
+            } catch (error) {
+              console.log('OAuth error from redirect URL:', error.message);
+              // If this is an OAuth error (like duplicate email), don't continue waiting
+              if (error.message.includes('already registered') || error.message.includes('server_error')) {
+                throw error; // Propagate the error to be shown to user
+              }
+              console.log('⚠️ Direct URL handling failed, trying deep link approach:', error.message);
+            }
           }
-
-          if (newSession?.session) {
-            console.log('✅ New session established');
-            await AsyncStorage.setItem('isAuthenticated', 'true');
-            setUser(newSession.session.user);
-            return true;
-          } else {
-            console.error('❌ No session after successful auth');
-            throw new Error('Authentication successful but no session created');
+          
+          // Fallback: Wait for the deep link callback to handle session creation
+          console.log('⏳ Waiting for deep link callback to set session...');
+          
+          // Wait up to 5 seconds for the session to be established via deep link
+          let retries = 0;
+          const maxRetries = 10; // 5 seconds (500ms * 10)
+          
+          while (retries < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const { data: currentSession } = await supabase.auth.getSession();
+            
+            if (currentSession?.session) {
+              console.log('✅ Session established via deep link callback');
+              setUser(currentSession.session.user);
+              await AsyncStorage.setItem('isAuthenticated', 'true');
+              return true;
+            }
+            
+            retries++;
+            console.log(`⏳ Waiting for session... (${retries}/${maxRetries})`);
           }
+          
+          // If no session after waiting, it might still be processing
+          console.log('⚠️ Session not established within timeout, but OAuth was successful');
+          return true;
         } else {
           console.log('⚠️ Auth session closed or cancelled');
           throw new Error('Authentication cancelled');
@@ -290,13 +334,104 @@ const AuthProvider = ({ children }) => {
     setLoading(true);
     
     try {
-      console.log('🍎 Initiating Apple sign-in...');
-      const result = await supabaseSignInWithApple();
+      console.log('Initiating Apple sign-in...');
       
-      if (result) {
-        console.log('✅ Apple sign-in successful');
-        await AsyncStorage.setItem('isAuthenticated', 'true');
-        return true;
+      // Check if session already exists
+      const { data: existingSession } = await supabase.auth.getSession();
+      if (existingSession?.session) {
+        console.log('Session already exists before Apple sign-in');
+        console.log('Existing user:', existingSession.session.user.email);
+      }
+      
+      // For EAS builds, always use the production scheme
+      const redirectUrl = 'com.bsk3s.heavenlyhub://auth/callback';
+      console.log('🔗 Using redirectTo:', redirectUrl);
+      
+      const { data, error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (signInError) {
+        console.error('❌ Apple sign-in error:', signInError);
+        throw signInError;
+      }
+
+      if (data?.url) {
+        console.log('📱 Opening auth session in browser...');
+        console.log('🌐 OAuth URL:', data.url);
+        console.log('🔗 Expected redirect:', redirectUrl);
+        
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          redirectUrl,
+          {
+            showInRecents: true,
+            preferEphemeralSession: true
+          }
+        );
+        console.log('🔄 Auth session result:', result.type);
+        
+        if (result.type === 'success' && result.url) {
+          console.log('✅ Redirect URL received:', result.url);
+        }
+
+        if (result.type === 'success') {
+          console.log('✅ OAuth browser session completed successfully');
+          
+          // Try to handle the redirect URL directly if available
+          if (result.url) {
+            console.log('🔗 Handling redirect URL directly:', result.url);
+            try {
+              const callbackResult = await handleAuthCallback(result.url);
+              if (callbackResult.success && callbackResult.session) {
+                console.log('✅ OAuth session established directly from redirect');
+                setUser(callbackResult.user);
+                await AsyncStorage.setItem('isAuthenticated', 'true');
+                return true;
+              }
+            } catch (error) {
+              console.log('OAuth error from redirect URL:', error.message);
+              // If this is an OAuth error (like duplicate email), don't continue waiting
+              if (error.message.includes('already registered') || error.message.includes('server_error')) {
+                throw error; // Propagate the error to be shown to user
+              }
+              console.log('⚠️ Direct URL handling failed, trying deep link approach:', error.message);
+            }
+          }
+          
+          // Fallback: Wait for the deep link callback to handle session creation
+          console.log('⏳ Waiting for deep link callback to set session...');
+          
+          // Wait up to 5 seconds for the session to be established via deep link
+          let retries = 0;
+          const maxRetries = 10; // 5 seconds (500ms * 10)
+          
+          while (retries < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const { data: currentSession } = await supabase.auth.getSession();
+            
+            if (currentSession?.session) {
+              console.log('✅ Session established via deep link callback');
+              setUser(currentSession.session.user);
+              await AsyncStorage.setItem('isAuthenticated', 'true');
+              return true;
+            }
+            
+            retries++;
+            console.log(`⏳ Waiting for session... (${retries}/${maxRetries})`);
+          }
+          
+          // If no session after waiting, it might still be processing
+          console.log('⚠️ Session not established within timeout, but OAuth was successful');
+          return true;
+        } else {
+          console.log('⚠️ Auth session closed or cancelled');
+          throw new Error('Authentication cancelled');
+        }
       }
       
       return true;

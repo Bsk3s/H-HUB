@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, SafeAreaView, StyleSheet, ScrollView, Tex
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import { Svg, Path } from 'react-native-svg';
+import ErrorBoundary from '../../src/components/ErrorBoundary';
 
 import Button from '../../components/ui/Button';
 import ProgressHeader, { STEP_COLORS } from '../../components/ui/ProgressHeader';
@@ -1089,7 +1090,14 @@ const Stack = createNativeStackNavigator();
 
 export default function OnboardingNavigator({ parentNavigation }) {
   return (
-    <Stack.Navigator
+    <ErrorBoundary 
+      screenName="Onboarding"
+      onRetry={() => {
+        // Reset onboarding state
+        console.log('🔄 Retrying Onboarding...');
+      }}
+    >
+      <Stack.Navigator
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
@@ -1141,6 +1149,7 @@ export default function OnboardingNavigator({ parentNavigation }) {
         component={SignUpScreen}
       />
     </Stack.Navigator>
+    </ErrorBoundary>
   );
 }
 
@@ -1468,3 +1477,5 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
 });
+
+

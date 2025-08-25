@@ -46,7 +46,7 @@ const TimeViewSelector = memo(({ timeView, onViewChange }) => (
   </View>
 ));
 
-const DayView = ({ activities, onActivitySelect, getCurrentProgress }) => (
+const DayView = React.memo(({ activities, onActivitySelect, getCurrentProgress }) => (
     <View className="flex-row flex-wrap justify-between mt-4">
     {activities.map((activity) => (
         <TouchableOpacity
@@ -64,9 +64,9 @@ const DayView = ({ activities, onActivitySelect, getCurrentProgress }) => (
       </TouchableOpacity>
     ))}
   </View>
-);
+));
 
-const MonthView = ({ rawActivities, activities }) => {
+const MonthView = React.memo(({ rawActivities, activities }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
     const { ringsForDate } = useMemo(() => {
@@ -197,7 +197,7 @@ const MonthView = ({ rawActivities, activities }) => {
             </View>
         </View>
     );
-};
+});
 
 const ACTIVITY_DEFINITIONS = {
   prayer: { color: '#F43F5E' },

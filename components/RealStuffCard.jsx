@@ -41,7 +41,8 @@ const RealStuffCard = ({ card, onPress }) => {
       onPress={() => onPress(card)}
       style={[styles.cardContainer, { width: CARD_WIDTH }]}
     >
-      <LinearGradient colors={getGradientColors()} style={styles.gradient}>
+      <View style={styles.shadowContainer}>
+        <LinearGradient colors={getGradientColors()} style={styles.gradient}>
         {/* Background Effect Layer */}
         <View style={styles.backgroundEffect} />
         
@@ -74,7 +75,8 @@ const RealStuffCard = ({ card, onPress }) => {
 
         {/* Subtle Corner Accent */}
         <View style={styles.cornerAccent} />
-      </LinearGradient>
+        </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -84,15 +86,19 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     marginRight: 20,
   },
-  gradient: {
+  shadowContainer: {
     borderRadius: 24,
-    padding: 24,
-    minHeight: 180,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 6,
+    backgroundColor: '#4F46E5', // Add background color for shadow efficiency
+  },
+  gradient: {
+    borderRadius: 24,
+    padding: 24,
+    minHeight: 180,
   },
   backgroundEffect: {
     position: 'absolute',

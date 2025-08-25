@@ -30,12 +30,21 @@ const RealStuffCard = ({ card, width, onPress }) => {
       onPress={() => onPress && onPress(card)}
       style={{ width, marginRight: 20 }}
     >
-      <LinearGradient
-        colors={gradientColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 24, padding: 20, minHeight: 190, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 3 }}
-      >
+      <View style={{ 
+        borderRadius: 24, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.12, 
+        shadowRadius: 8, 
+        elevation: 3,
+        backgroundColor: gradientColors[0] // Add background color for shadow efficiency
+      }}>
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ borderRadius: 24, padding: 20, minHeight: 190 }}
+        >
         {/* Pillar chip */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
           <Text style={{ color: 'white', marginRight: 8 }}>✝️</Text>
@@ -60,7 +69,8 @@ const RealStuffCard = ({ card, width, onPress }) => {
 
         {/* Micro-dot */}
         <View style={{ position: 'absolute', top: 14, right: 14, width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' }} />
-      </LinearGradient>
+        </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 };
