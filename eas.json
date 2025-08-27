@@ -19,14 +19,14 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "image": "macos-sequoia-15.6-xcode-16.4"
+        "image": "macos-ventura-13.6-xcode-15.3"
       }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
         "buildConfiguration": "Release",
-        "image": "macos-sequoia-15.6-xcode-16.4"
+        "image": "macos-ventura-13.6-xcode-15.3"
       }
     }
   },
