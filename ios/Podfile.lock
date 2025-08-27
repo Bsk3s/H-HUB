@@ -79,6 +79,8 @@ PODS:
     - React-Core
   - ExpoBlur (12.4.1):
     - ExpoModulesCore
+  - ExpoClipboard (4.3.1):
+    - ExpoModulesCore
   - ExpoCrypto (12.4.1):
     - ExpoModulesCore
   - ExpoDevice (5.4.0):
@@ -106,6 +108,8 @@ PODS:
     - React-RCTAppDelegate
     - ReactCommon/turbomodule/core
   - ExpoSecureStore (12.3.1):
+    - ExpoModulesCore
+  - ExpoSharing (11.5.0):
     - ExpoModulesCore
   - ExpoSpeech (11.3.0):
     - ExpoModulesCore
@@ -153,9 +157,8 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
-  - livekit-react-native (2.7.6):
+  - livekit-react-native (2.5.0):
     - livekit-react-native-webrtc
-    - RCT-Folly (= 2021.07.22.00)
     - React-Core
   - livekit-react-native-webrtc (125.0.11):
     - React-Core
@@ -467,12 +470,17 @@ PODS:
     - React-Core
   - react-native-netinfo (9.3.10):
     - React-Core
-  - react-native-pager-view (6.2.3):
-    - RCT-Folly (= 2021.07.22.00)
+  - react-native-pager-view (6.2.0):
     - React-Core
-  - react-native-safe-area-context (4.14.1):
+  - react-native-safe-area-context (4.6.3):
+    - RCT-Folly
+    - RCTRequired
+    - RCTTypeSafety
     - React-Core
+    - ReactCommon/turbomodule/core
   - react-native-slider (4.4.2):
+    - React-Core
+  - react-native-view-shot (3.7.0):
     - React-Core
   - React-NativeModulesApple (0.72.10):
     - hermes-engine
@@ -584,7 +592,7 @@ PODS:
     - React-jsi (= 0.72.10)
     - React-logger (= 0.72.10)
     - React-perflogger (= 0.72.10)
-  - RNCAsyncStorage (1.24.0):
+  - RNCAsyncStorage (1.18.2):
     - React-Core
   - RNDateTimePicker (7.2.0):
     - React-Core
@@ -593,7 +601,7 @@ PODS:
   - RNScreens (3.22.1):
     - React-Core
     - React-RCTImage
-  - RNSVG (13.14.1):
+  - RNSVG (13.9.0):
     - React-Core
   - SDWebImage (5.15.8):
     - SDWebImage/Core (= 5.15.8)
@@ -628,6 +636,7 @@ DEPENDENCIES:
   - expo-dev-menu (from `../node_modules/expo-dev-menu`)
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
   - ExpoBlur (from `../node_modules/expo-blur/ios`)
+  - ExpoClipboard (from `../node_modules/expo-clipboard/ios`)
   - ExpoCrypto (from `../node_modules/expo-crypto/ios`)
   - ExpoDevice (from `../node_modules/expo-device/ios`)
   - ExpoDocumentPicker (from `../node_modules/expo-document-picker/ios`)
@@ -638,6 +647,7 @@ DEPENDENCIES:
   - ExpoLinearGradient (from `../node_modules/expo-linear-gradient/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
+  - ExpoSharing (from `../node_modules/expo-sharing/ios`)
   - ExpoSpeech (from `../node_modules/expo-speech/ios`)
   - ExpoSystemUI (from `../node_modules/expo-system-ui/ios`)
   - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
@@ -672,6 +682,7 @@ DEPENDENCIES:
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-slider (from `../node_modules/@react-native-community/slider`)"
+  - react-native-view-shot (from `../node_modules/react-native-view-shot`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-RCTActionSheet (from `../node_modules/react-native/Libraries/ActionSheetIOS`)
@@ -746,6 +757,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-dev-menu-interface/ios"
   ExpoBlur:
     :path: "../node_modules/expo-blur/ios"
+  ExpoClipboard:
+    :path: "../node_modules/expo-clipboard/ios"
   ExpoCrypto:
     :path: "../node_modules/expo-crypto/ios"
   ExpoDevice:
@@ -766,6 +779,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-modules-core"
   ExpoSecureStore:
     :path: "../node_modules/expo-secure-store/ios"
+  ExpoSharing:
+    :path: "../node_modules/expo-sharing/ios"
   ExpoSpeech:
     :path: "../node_modules/expo-speech/ios"
   ExpoSystemUI:
@@ -830,6 +845,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-slider:
     :path: "../node_modules/@react-native-community/slider"
+  react-native-view-shot:
+    :path: "../node_modules/react-native-view-shot"
   React-NativeModulesApple:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios"
   React-perflogger:
@@ -895,6 +912,7 @@ SPEC CHECKSUMS:
   expo-dev-menu: cc50dfc09a654cb5d74ac3482f0c49ca1268117d
   expo-dev-menu-interface: 22ea9639725e26dfebcb16ea631ddec660827374
   ExpoBlur: 98f8c3ead7693fa429e9e036957ee3527abedd5b
+  ExpoClipboard: adf4a30553aeb2e75edfce19c27b7489d6e69aed
   ExpoCrypto: e0714ca676dc875ee772802cf20bcea6ec75c3e7
   ExpoDevice: 0333baa899c09213c1c6cb3d1a1b2061fb00594c
   ExpoDocumentPicker: a5c7fa7d85a5b441a00c85707031c4cfb74cffff
@@ -905,6 +923,7 @@ SPEC CHECKSUMS:
   ExpoLinearGradient: 1db30c60fe141f185b0ca5556cc85deb3ee9f245
   ExpoModulesCore: 3312621274fbba06fe382a37d8218a43cd522823
   ExpoSecureStore: 4682182dd6bdbd73dde41e91d0a4e205a96b819f
+  ExpoSharing: 2a0c99d8b3b2e99a47196d8dda2b62ccd9829d38
   ExpoSpeech: de04e9f6be62d236bfd11fbedbcf8f26868d0a68
   ExpoSystemUI: 8bd8809b1de7bf6a3a7f019306180a4b9b1c855a
   ExpoWebBrowser: 025c51f93c6a04beb169388877918de64ccae171
@@ -920,7 +939,7 @@ SPEC CHECKSUMS:
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   libvmaf: 27f523f1e63c694d14d534cd0fddd2fab0ae8711
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
-  livekit-react-native: 8a7426caf80ab8f122d5d05738aa4bb76f26bee3
+  livekit-react-native: 859d49161143eb54f8d987628153eab62e03ff13
   livekit-react-native-webrtc: 4dd93b14cdd2ffcc9eaae07eaeff7f95a643db45
   LiveKitExpoPlugin: 8e0f4bdffa921c27c13e1504ea0e668b6f859278
   RCT-Folly: 8dc08ca5a393b48b1c523ab6220dfdcc0fe000ad
@@ -940,9 +959,10 @@ SPEC CHECKSUMS:
   React-logger: 13a8b7094f27626adf648a8458e842e27fa70e13
   react-native-get-random-values: 419569b6ed3d15bfb9b6781b2f2e058f8e8d2698
   react-native-netinfo: 66c9ac0d0ae92a57a9ed99ab8a75429740700c73
-  react-native-pager-view: 8f36f88437684bf5ea86f9172a91c266d99b975f
-  react-native-safe-area-context: 758e894ca5a9bd1868d2a9cfbca7326a2b6bf9dc
+  react-native-pager-view: 7c6ae059318d0e7e72ff474f13ff5b246ce7d826
+  react-native-safe-area-context: f998d7c030d9c89b0a745f8466f1f988478d822e
   react-native-slider: 3051c537444d711b566d1e4d681c6cd35081ae6f
+  react-native-view-shot: ece7d83e8d7066b32efed47aad09acd8f99f1011
   React-NativeModulesApple: cb6d3c0f057dbd98545ddf1ec047f225d1dd9bf9
   React-perflogger: 43287389ea08993c300897a46f95cfac04bb6c1a
   React-RCTActionSheet: 923afe77f9bb89da7c1f98e2730bfc9dde0eed6d
@@ -960,11 +980,11 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 1f51ecd9eaa819eb66267ad66d8ac42d2173768f
   React-utils: a4a93189d0daacb5e8215250dc87907ff303744a
   ReactCommon: 5307bd88aa11a192d8a75717e66d7b630d9bc8bd
-  RNCAsyncStorage: b6410dead2732b5c72a7fdb1ecb5651bbcf4674b
+  RNCAsyncStorage: d74501eeac0371fb58b3643704451a11b760af80
   RNDateTimePicker: a3d13ed62d7d781dfe0ebc79d04340a4e6350e2b
   RNGestureHandler: 627182485becfd74f122c83f93cce2be20c2e8c8
   RNScreens: 39db1910d2ea9ae885dcda43086818e9f8b714d0
-  RNSVG: ae50dd253f44447b32d0f5a3657a97859f289891
+  RNSVG: 67c430ac7a54043cac37f6bd7bc94f8e22d8a64a
   SDWebImage: cb032eba469c54e0000e78bcb0a13cdde0a52798
   SDWebImageAVIFCoder: 8348fef6d0ec69e129c66c9fe4d74fbfbf366112
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
@@ -973,6 +993,6 @@ SPEC CHECKSUMS:
   WebRTC-SDK: dff00a3892bc570b6014e046297782084071657e
   Yoga: d0003f849d2b5224c072cef6568b540d8bb15cd3
 
-PODFILE CHECKSUM: b2a2578945f94a788516031693016a2b2820450f
+PODFILE CHECKSUM: e991ec0fc4bc8ccc6bb8f664f9c7233a72c3df9f
 
 COCOAPODS: 1.16.2
