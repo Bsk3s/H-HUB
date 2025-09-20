@@ -10,7 +10,7 @@
       "ios": {
         "buildConfiguration": "Debug",
         "simulator": false,
-        "image": "macos-sonoma-14.4-xcode-15.3"
+        "image": "macos-sequoia-15.0-xcode-16.2"
       },
       "env": {
         "EXPO_NO_CAPABILITY_SYNC": "1"
