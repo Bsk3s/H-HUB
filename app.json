@@ -46,7 +46,10 @@
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -76,12 +79,12 @@
         "origin": false
       },
       "eas": {
-        "projectId": "1fa190f3-7594-45fd-82f4-91a715d1625f"
+        "projectId": "a858d93a-8c2b-48aa-8c5c-2ac5f8411618"
       },
       "bibleApiKey": "c9afcb2ed06b4d336db834d2e03526cf",
       "apiUrl": "https://livekit-voice-agent-0jz0.onrender.com"
     },
-    "owner": "bstr-studio",
+    "owner": "bstr",
     "developer": {
       "tool": "expo-cli"
     },
