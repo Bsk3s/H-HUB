@@ -1,0 +1,13 @@
+backup-nuclear-migration/
+github-production-source/
+HB1-source/
+ios-backup/
+android-backup/
+ios/
+android/
+**/node_modules/
+**/.git/
+.compare/
+dist-*/
+screens-backup-*/
+*.log
