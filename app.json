@@ -15,8 +15,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bsk3s.heavenlyhub",
-      "platformVersion": "14.0",
-      "deploymentTarget": "14.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "This app uses the camera for video calls",
@@ -66,7 +64,9 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "14.0"
+            "deploymentTarget": "15.1",
+            "useFrameworks": "static",
+            "newArchEnabled": true
           },
           "android": {
             "minSdkVersion": 24
