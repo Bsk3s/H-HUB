@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, ActivityIndicator, SafeAreaView, ScrollView, TouchableOpacity, Text } from 'react-native';
+import AppHeader from '../components/AppHeader';
 import { StatusBar } from 'expo-status-bar';
 import ErrorBoundary from '../src/components/ErrorBoundary';
 import ActivityRingSkeleton from '../src/components/loading/ActivityRingSkeleton';
@@ -25,9 +26,9 @@ export default function HomeScreen({ navigation }) {
   const [showDailyProgress, setShowDailyProgress] = useState(false);
   const [selectedRealStuffCard, setSelectedRealStuffCard] = useState(null);
   const [showRealStuffModal, setShowRealStuffModal] = useState(false);
-  
-  const { 
-    activities, 
+
+  const {
+    activities,
     isLoading,
     error,
     setLiveDraft,
@@ -40,6 +41,7 @@ export default function HomeScreen({ navigation }) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white' }}>
         <StatusBar style="dark" />
+        <AppHeader navigation={navigation} />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 20 }}
@@ -57,10 +59,10 @@ export default function HomeScreen({ navigation }) {
               <View style={{ width: '40%', height: 14, backgroundColor: '#E5E7EB', borderRadius: 4 }} />
             </View>
           </View>
-          
+
           {/* Activity Rings Skeleton */}
           <ActivityRingSkeleton size={90} count={4} />
-          
+
           {/* Real Stuff Section Skeleton */}
           <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
             <View style={{ width: '50%', height: 20, backgroundColor: '#E5E7EB', borderRadius: 4, marginBottom: 16 }} />
@@ -134,10 +136,10 @@ export default function HomeScreen({ navigation }) {
     setSelectedRealStuffCard(null);
   };
 
-  const selectedActivity = selectedActivityType 
+  const selectedActivity = selectedActivityType
     ? activities.find(a => a.type === selectedActivityType)
     : null;
-  
+
   const handleCloseModal = () => {
     if (selectedActivity) {
       commitLiveDraft(selectedActivity.id);
@@ -156,7 +158,7 @@ export default function HomeScreen({ navigation }) {
 
       {/* Daily Progress */}
       <View style={{ marginTop: 32 }}>
-        <DailyProgressRow 
+        <DailyProgressRow
           activities={activities}
           onActivitySelect={handleActivitySelect}
           onViewAll={() => setShowDailyProgress(true)}
@@ -166,8 +168,8 @@ export default function HomeScreen({ navigation }) {
 
       {/* The Real Stuff */}
       <View style={{ marginTop: 32 }}>
-        <RealStuffSection 
-          cards={realStuffCards} 
+        <RealStuffSection
+          cards={realStuffCards}
           onCardPress={handleRealStuffCardPress}
         />
       </View>
@@ -186,7 +188,7 @@ export default function HomeScreen({ navigation }) {
   );
 
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       screenName="Home"
       onRetry={() => {
         // Reset any error states and reload activities
@@ -195,6 +197,7 @@ export default function HomeScreen({ navigation }) {
     >
       <View style={{ flex: 1, backgroundColor: 'white' }}>
         <StatusBar style="dark" />
+        <AppHeader navigation={navigation} />
         {showDailyProgress ? (
           <DailyProgressPage
             activities={activities}
@@ -229,9 +232,9 @@ export default function HomeScreen({ navigation }) {
           isVisible={showRealStuffModal}
           onClose={handleCloseRealStuffModal}
           navigation={navigation}
-          onShare={() => {}}
-          onSave={() => {}}
-          onCTA={() => {}}
+          onShare={() => { }}
+          onSave={() => { }}
+          onCTA={() => { }}
         />
       </View>
     </ErrorBoundary>
