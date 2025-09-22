@@ -1,4 +1,4 @@
-const IS_PRODUCTION = process.env.EAS_BUILD_PROFILE === 'production';
+const IS_PRODUCTION = process.env.EXPO_NO_DEV_CLIENT === '1';
 
 export default {
   "expo": {
