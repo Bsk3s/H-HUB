@@ -64,7 +64,7 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "17.0",
+            "deploymentTarget": "15.0",
             "useFrameworks": "static",
             "newArchEnabled": false
           },
