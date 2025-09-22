@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/HB.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/HBMAIN1.png",
       "resizeMode": "contain",
@@ -66,7 +66,7 @@
           "ios": {
             "deploymentTarget": "17.0",
             "useFrameworks": "static",
-            "newArchEnabled": true
+            "newArchEnabled": false
           },
           "android": {
             "minSdkVersion": 24
