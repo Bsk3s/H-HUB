@@ -1,4 +1,6 @@
-{
+const IS_PRODUCTION = process.env.EAS_BUILD_PROFILE === 'production';
+
+export default {
   "expo": {
     "name": "Heavenly Hub",
     "slug": "heavenlyhub",
@@ -74,7 +76,8 @@
         }
       ],
       "@livekit/react-native-expo-plugin",
-      "expo-dev-client"
+      // Only include expo-dev-client in development builds
+      ...(IS_PRODUCTION ? [] : ["expo-dev-client"])
     ],
     "extra": {
       "router": {
@@ -94,4 +97,4 @@
       "host": "0.0.0.0"
     }
   }
-}
+};

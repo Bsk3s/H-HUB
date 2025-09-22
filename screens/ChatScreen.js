@@ -7,7 +7,7 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import { useLiveKitVoiceChat } from '../app/hooks/useLiveKitVoiceChat';
+// import { useLiveKitVoiceChat } from '../app/hooks/useLiveKitVoiceChat'; // Temporarily disabled for production build
 // Removed useNavigation as we use custom navigation from App.js
 import { showErrorAlert, showRetryErrorAlert, getUserFriendlyErrorMessage } from '../src/utils/errorHandling';
 import ErrorBoundary from '../src/components/ErrorBoundary';

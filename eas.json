@@ -25,7 +25,11 @@
         "image": "macos-sequoia-15.3-xcode-16.2"
       },
       "env": {
-        "EXPO_NO_CAPABILITY_SYNC": "1"
+        "EXPO_NO_CAPABILITY_SYNC": "1",
+        "EXPO_NO_DEV_CLIENT": "1"
+      },
+      "cache": {
+        "disabled": true
       }
     }
   },
