@@ -5,12 +5,12 @@ module.exports = function (api) {
     plugins: [
       'nativewind/babel',
       ["module-resolver", {
-        "root": ["./"],
         "alias": {
           "@src": "./src",
           "@app": "./app",
           "@assets": "./assets"
-        }
+        },
+        "extensions": [".tsx", ".ts", ".js", ".json"]
       }],
     ],
   };

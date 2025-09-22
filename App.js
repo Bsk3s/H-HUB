@@ -1,20 +1,78 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+
+// Import providers
+import { AuthProvider } from './src/auth/context';
+import { FeedbackProvider } from './src/components/feedback/FeedbackProvider';
+
+// Import screens
+import LandingScreen from './screens/LandingScreen';
+import HomeScreen from './screens/HomeScreen';
+import OnboardingNavigator from './components/navigation/OnboardingNavigator';
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Heavenly Hub - Production Ready!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <FeedbackProvider>
+      <AuthProvider>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+            initialRouteName="Landing"
+          >
+            <Stack.Screen
+              name="Landing"
+              component={LandingScreen}
+            />
+            <Stack.Screen
+              name="Home"
+              component={HomeScreen}
+            />
+            <Stack.Screen name="Onboarding">
+              {(props) => <OnboardingNavigator {...props} parentNavigation={props.navigation} />}
+            </Stack.Screen>
+            <Stack.Screen
+              name="EmailSignIn"
+              component={require('./screens/EmailSignInScreen').default}
+            />
+            <Stack.Screen
+              name="Profile"
+              component={require('./screens/ProfileScreen').default}
+            />
+            <Stack.Screen
+              name="Settings"
+              component={require('./screens/SettingsScreen').default}
+            />
+            <Stack.Screen
+              name="Help"
+              component={require('./screens/HelpScreen').default}
+            />
+            <Stack.Screen
+              name="EditProfile"
+              component={require('./screens/EditProfileScreen').default}
+            />
+            <Stack.Screen
+              name="ChangePassword"
+              component={require('./screens/ChangePasswordScreen').default}
+            />
+            <Stack.Screen
+              name="Stories"
+              component={require('./screens/StoriesScreen').default}
+            />
+            <Stack.Screen
+              name="StoryDetail"
+              component={require('./screens/StoryDetailScreen').default}
+            />
+          </Stack.Navigator>
+          <StatusBar style="auto" />
+        </NavigationContainer>
+      </AuthProvider>
+    </FeedbackProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

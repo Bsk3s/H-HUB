@@ -27,15 +27,15 @@ function FaithChallengesScreen({ navigation }) {
   const handleSelect = (challenge) => {
     setSelectedOptions((prev) => {
       const isSelected = prev.some(item => item.id === challenge.id);
-      
+
       if (isSelected) {
         return prev.filter(item => item.id !== challenge.id);
       }
-      
+
       if (prev.length >= MAX_SELECTIONS) {
         return prev; // Don't add if at max
       }
-      
+
       return [...prev, challenge];
     });
   };
@@ -63,7 +63,7 @@ function FaithChallengesScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <ProgressHeader currentStep={5} totalSteps={11} onBack={() => navigation.goBack()} />
-        
+
         <Text style={styles.title}>
           What challenges do you face in deepening your faith?
         </Text>
@@ -153,7 +153,7 @@ function GrowthScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <ProgressHeader currentStep={6} totalSteps={11} onBack={() => navigation.goBack()} />
-        
+
         <Text style={styles.title}>
           If you could have the perfect faith journey, what would it look like?
         </Text>
@@ -237,7 +237,7 @@ function PrayerHabitsScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <ProgressHeader currentStep={7} totalSteps={11} onBack={() => navigation.goBack()} />
-        
+
         <Text style={styles.title}>
           What have you tried in the past to grow spiritually?
         </Text>
@@ -310,7 +310,7 @@ function SatisfactionScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <ProgressHeader currentStep={8} totalSteps={11} onBack={() => navigation.goBack()} />
-        
+
         <Text style={styles.title}>
           Are you satisfied with your current spiritual life?
         </Text>
@@ -383,7 +383,7 @@ function ShiftScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <ProgressHeader currentStep={9} totalSteps={11} onBack={() => navigation.goBack()} />
-        
+
         <Text style={styles.title}>
           Are you ready for a structured spiritual growth plan?
         </Text>
@@ -442,7 +442,7 @@ function FinalScreen({ navigation }) {
         // Save name and age to AsyncStorage
         await AsyncStorage.setItem('userName', name);
         await AsyncStorage.setItem('userAge', age);
-        
+
         navigation.navigate('SignUpScreen');
       } catch (error) {
         console.error('Error saving final data:', error);
@@ -455,7 +455,7 @@ function FinalScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.keyboardView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -464,9 +464,9 @@ function FinalScreen({ navigation }) {
         <View style={styles.finalContent}>
           {/* Progress bar and back button */}
           <View style={styles.finalProgressContainer}>
-            <ProgressHeader 
-              currentStep={10} 
-              totalSteps={11} 
+            <ProgressHeader
+              currentStep={10}
+              totalSteps={11}
               onBack={() => navigation.goBack()}
             />
           </View>
@@ -522,16 +522,16 @@ function FinalScreen({ navigation }) {
 // Apple and Google Icons
 const AppleIcon = () => (
   <Svg width="24" height="24" viewBox="0 0 24 24">
-    <Path d="M16.3,12.3c0-2.3,1.9-3.4,2-3.4c-1.1-1.6-2.8-1.8-3.4-1.8c-1.4-0.1-2.8,0.8-3.5,0.8 c-0.7,0-1.8-0.8-3-0.8c-1.5,0-2.9,0.9-3.7,2.3c-1.6,2.8-0.4,6.8,1.1,9c0.8,1.1,1.7,2.3,2.9,2.3c1.2,0,1.6-0.8,3-0.8 c1.4,0,1.8,0.8,3,0.8c1.2,0,2-1.1,2.8-2.2c0.9-1.3,1.2-2.5,1.2-2.6C18.7,16,16.3,15.3,16.3,12.3z M14.2,6.9 c0.6-0.8,1.1-1.9,0.9-3c-0.9,0-2,0.6-2.6,1.4c-0.6,0.7-1.1,1.8-0.9,2.9C12.6,8.3,13.6,7.7,14.2,6.9z" fill="black"/>
+    <Path d="M16.3,12.3c0-2.3,1.9-3.4,2-3.4c-1.1-1.6-2.8-1.8-3.4-1.8c-1.4-0.1-2.8,0.8-3.5,0.8 c-0.7,0-1.8-0.8-3-0.8c-1.5,0-2.9,0.9-3.7,2.3c-1.6,2.8-0.4,6.8,1.1,9c0.8,1.1,1.7,2.3,2.9,2.3c1.2,0,1.6-0.8,3-0.8 c1.4,0,1.8,0.8,3,0.8c1.2,0,2-1.1,2.8-2.2c0.9-1.3,1.2-2.5,1.2-2.6C18.7,16,16.3,15.3,16.3,12.3z M14.2,6.9 c0.6-0.8,1.1-1.9,0.9-3c-0.9,0-2,0.6-2.6,1.4c-0.6,0.7-1.1,1.8-0.9,2.9C12.6,8.3,13.6,7.7,14.2,6.9z" fill="black" />
   </Svg>
 );
 
 const GoogleIcon = () => (
   <Svg width="24" height="24" viewBox="0 0 24 24">
-    <Path d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" fill="#4285F4"/>
-    <Path d="M12.255 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96h-3.98v3.09C3.515 20.29 7.565 24 12.255 24z" fill="#34A853"/>
-    <Path d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 000 10.76l3.98-3.09z" fill="#FBBC05"/>
-    <Path d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.69 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z" fill="#EA4335"/>
+    <Path d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" fill="#4285F4" />
+    <Path d="M12.255 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96h-3.98v3.09C3.515 20.29 7.565 24 12.255 24z" fill="#34A853" />
+    <Path d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 000 10.76l3.98-3.09z" fill="#FBBC05" />
+    <Path d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.69 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z" fill="#EA4335" />
   </Svg>
 );
 
@@ -578,7 +578,7 @@ function SignUpScreen({ navigation }) {
       setLocalError('Please fill in all fields');
       return;
     }
-    
+
     if (password !== confirmPassword) {
       setLocalError('Passwords do not match');
       return;
@@ -602,7 +602,7 @@ function SignUpScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.keyboardView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -610,9 +610,9 @@ function SignUpScreen({ navigation }) {
       >
         <View style={styles.signUpContent}>
           <View style={styles.signUpProgressContainer}>
-            <ProgressHeader 
-              currentStep={11} 
-              totalSteps={11} 
+            <ProgressHeader
+              currentStep={11}
+              totalSteps={11}
               onBack={() => navigation.goBack()}
             />
           </View>
@@ -657,7 +657,7 @@ function SignUpScreen({ navigation }) {
               />
             </View>
           </View>
-          
+
           <View style={styles.signUpButtonContainer}>
             <Button
               onPress={handleEmailSignUp}
@@ -665,13 +665,13 @@ function SignUpScreen({ navigation }) {
               disabled={!isValid || loading}
             />
           </View>
-          
+
           <View style={styles.signUpDivider}>
             <View style={styles.signUpDividerLine} />
             <Text style={styles.signUpDividerText}>or</Text>
             <View style={styles.signUpDividerLine} />
           </View>
-          
+
           <View style={styles.signUpSocialContainer}>
             <TouchableOpacity
               onPress={handleGoogleSignUp}
@@ -747,8 +747,8 @@ function SpiritualJourneyScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.headerContainer}>
-          <ProgressHeader 
-            currentStep={4} 
+          <ProgressHeader
+            currentStep={4}
             totalSteps={11}
             onBack={handleBack}
           />
@@ -840,8 +840,8 @@ function BibleVersionScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.headerContainer}>
-          <ProgressHeader 
-            currentStep={3} 
+          <ProgressHeader
+            currentStep={3}
             totalSteps={11}
             onBack={handleBack}
           />
@@ -897,7 +897,7 @@ function BibleVersionScreen({ navigation }) {
 function AgeScreen({ navigation }) {
   const [selectedAge, setSelectedAge] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+
   const ageGroups = [
     { id: 1, label: '13-17' },
     { id: 2, label: '18-24' },
@@ -931,8 +931,8 @@ function AgeScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.headerContainer}>
-          <ProgressHeader 
-            currentStep={2} 
+          <ProgressHeader
+            currentStep={2}
             totalSteps={11}
             onBack={handleBack}
           />
@@ -1033,8 +1033,8 @@ function DenominationScreen({ navigation, parentNavigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.headerContainer}>
-          <ProgressHeader 
-            currentStep={1} 
+          <ProgressHeader
+            currentStep={1}
             totalSteps={11}
             onBack={handleBack}
           />
@@ -1090,7 +1090,7 @@ const Stack = createNativeStackNavigator();
 
 export default function OnboardingNavigator({ parentNavigation }) {
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       screenName="Onboarding"
       onRetry={() => {
         // Reset onboarding state
@@ -1098,57 +1098,56 @@ export default function OnboardingNavigator({ parentNavigation }) {
       }}
     >
       <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-      }}
-      initialRouteName="DenominationScreen"
-    >
-      <Stack.Screen 
-        name="DenominationScreen" 
-        component={(props) => <DenominationScreen {...props} parentNavigation={parentNavigation} />}
-      />
-      <Stack.Screen 
-        name="AgeScreen" 
-        component={AgeScreen}
-      />
-      <Stack.Screen 
-        name="BibleVersionScreen" 
-        component={BibleVersionScreen}
-      />
-      <Stack.Screen 
-        name="SpiritualJourneyScreen" 
-        component={SpiritualJourneyScreen}
-      />
-      <Stack.Screen 
-        name="FaithChallengesScreen" 
-        component={FaithChallengesScreen}
-      />
-      <Stack.Screen 
-        name="GrowthScreen" 
-        component={GrowthScreen}
-      />
-      <Stack.Screen 
-        name="PrayerHabitsScreen" 
-        component={PrayerHabitsScreen}
-      />
-      <Stack.Screen 
-        name="SatisfactionScreen" 
-        component={SatisfactionScreen}
-      />
-      <Stack.Screen 
-        name="ShiftScreen" 
-        component={ShiftScreen}
-      />
-      <Stack.Screen 
-        name="FinalScreen" 
-        component={FinalScreen}
-      />
-      <Stack.Screen 
-        name="SignUpScreen" 
-        component={SignUpScreen}
-      />
-    </Stack.Navigator>
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+        initialRouteName="DenominationScreen"
+      >
+        <Stack.Screen name="DenominationScreen">
+          {(props) => <DenominationScreen {...props} parentNavigation={parentNavigation} />}
+        </Stack.Screen>
+        <Stack.Screen
+          name="AgeScreen"
+          component={AgeScreen}
+        />
+        <Stack.Screen
+          name="BibleVersionScreen"
+          component={BibleVersionScreen}
+        />
+        <Stack.Screen
+          name="SpiritualJourneyScreen"
+          component={SpiritualJourneyScreen}
+        />
+        <Stack.Screen
+          name="FaithChallengesScreen"
+          component={FaithChallengesScreen}
+        />
+        <Stack.Screen
+          name="GrowthScreen"
+          component={GrowthScreen}
+        />
+        <Stack.Screen
+          name="PrayerHabitsScreen"
+          component={PrayerHabitsScreen}
+        />
+        <Stack.Screen
+          name="SatisfactionScreen"
+          component={SatisfactionScreen}
+        />
+        <Stack.Screen
+          name="ShiftScreen"
+          component={ShiftScreen}
+        />
+        <Stack.Screen
+          name="FinalScreen"
+          component={FinalScreen}
+        />
+        <Stack.Screen
+          name="SignUpScreen"
+          component={SignUpScreen}
+        />
+      </Stack.Navigator>
     </ErrorBoundary>
   );
 }
