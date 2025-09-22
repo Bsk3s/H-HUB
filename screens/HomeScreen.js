@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { View, ActivityIndicator, SafeAreaView, ScrollView, TouchableOpacity, Text } from 'react-native';
 import AppHeader from '../components/AppHeader';
 import TopTabBar from '../components/navigation/TopTabBar';
+
+// Import production-ready screens
+import BibleScreen from './BibleScreen';
+import StudyScreen from './StudyScreen';
+import ChatScreen from './ChatScreen';
 import { StatusBar } from 'expo-status-bar';
 import ErrorBoundary from '../src/components/ErrorBoundary';
 import ActivityRingSkeleton from '../src/components/loading/ActivityRingSkeleton';
@@ -202,23 +207,66 @@ export default function HomeScreen({ navigation }) {
         <StatusBar style="dark" />
         <AppHeader navigation={navigation} />
         <TopTabBar activeTab={activeTab} onTabChange={setActiveTab} />
-        {showDailyProgress ? (
-          <DailyProgressPage
-            activities={activities}
-            activityLogs={activityLogs}
-            onBack={() => setShowDailyProgress(false)}
-            onActivitySelect={handleActivitySelect}
-            getCurrentProgress={getCurrentProgress}
-          />
-        ) : (
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 0 }}
-            showsVerticalScrollIndicator={false}
-            alwaysBounceVertical
-          >
-            {renderHomeContent()}
-          </ScrollView>
+
+        {/* Home Tab - with ScrollView and DailyProgress logic */}
+        {activeTab === 'Home' && (
+          <>
+            {showDailyProgress ? (
+              <DailyProgressPage
+                activities={activities}
+                activityLogs={activityLogs}
+                onBack={() => setShowDailyProgress(false)}
+                onActivitySelect={handleActivitySelect}
+                getCurrentProgress={getCurrentProgress}
+              />
+            ) : (
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 0 }}
+                showsVerticalScrollIndicator={false}
+                alwaysBounceVertical
+              >
+                {/* Daily Verse */}
+                <DailyVerse />
+
+                {/* Daily Progress */}
+                <DailyProgressRow
+                  activities={activities}
+                  onViewAll={() => setShowDailyProgress(true)}
+                  onActivitySelect={handleActivitySelect}
+                  getCurrentProgress={getCurrentProgress}
+                />
+
+                {/* Real Stuff Section */}
+                <RealStuffSection
+                  cards={realStuffCards}
+                  onCardPress={handleRealStuffCardPress}
+                />
+
+                {/* Stories Section */}
+                <StoriesSection
+                  stories={thisCantBeJustMe}
+                  navigation={navigation}
+                  onStoryPress={(story) => {
+                    navigation.navigate('StoryDetail', { storyId: story.id });
+                  }}
+                />
+              </ScrollView>
+            )}
+          </>
+        )}
+
+        {/* Full-screen components */}
+        {activeTab === 'Bible' && (
+          <BibleScreen navigation={navigation} />
+        )}
+
+        {activeTab === 'Study' && (
+          <StudyScreen navigation={navigation} />
+        )}
+
+        {activeTab === 'Chat' && (
+          <ChatScreen navigation={navigation} />
         )}
 
         {/* Activity Modal */}
