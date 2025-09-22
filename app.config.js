@@ -68,7 +68,13 @@ export default {
           "ios": {
             "deploymentTarget": "17.0",
             "useFrameworks": "static",
-            "newArchEnabled": false
+            "newArchEnabled": false,
+            "xcodeProjectFile": {
+              "buildSettings": {
+                "GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS": "NO",
+                "CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS": "NO"
+              }
+            }
           },
           "android": {
             "minSdkVersion": 24
