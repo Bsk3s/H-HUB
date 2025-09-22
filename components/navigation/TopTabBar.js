@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import PressableWithFeedback from '../../src/components/feedback/PressableWithFeedback';
 
 function TopTabBar({ activeTab, onTabChange }) {
   const { width } = useWindowDimensions();
@@ -41,7 +40,7 @@ function TopTabBar({ activeTab, onTabChange }) {
       }}>
         <Animated.View
           style={[
-            { 
+            {
               width: tabWidth,
               position: 'absolute',
               height: 36,
@@ -53,20 +52,18 @@ function TopTabBar({ activeTab, onTabChange }) {
           ]}
         />
         {tabs.map((tab) => (
-          <PressableWithFeedback
+          <TouchableOpacity
             key={tab.id}
             onPress={() => handleTabPress(tab.id)}
-            style={{ 
+            style={{
               width: tabWidth,
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%'
             }}
-            hapticType="selection"
-            scaleValue={0.98}
           >
-            <Text 
-              style={{ 
+            <Text
+              style={{
                 fontSize: 16,
                 fontWeight: '500',
                 zIndex: 10,
@@ -75,7 +72,7 @@ function TopTabBar({ activeTab, onTabChange }) {
             >
               {tab.label}
             </Text>
-          </PressableWithFeedback>
+          </TouchableOpacity>
         ))}
       </View>
     </View>

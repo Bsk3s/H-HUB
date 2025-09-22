@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, ActivityIndicator, SafeAreaView, ScrollView, TouchableOpacity, Text } from 'react-native';
 import AppHeader from '../components/AppHeader';
+import TopTabBar from '../components/navigation/TopTabBar';
 import { StatusBar } from 'expo-status-bar';
 import ErrorBoundary from '../src/components/ErrorBoundary';
 import ActivityRingSkeleton from '../src/components/loading/ActivityRingSkeleton';
@@ -26,6 +27,7 @@ export default function HomeScreen({ navigation }) {
   const [showDailyProgress, setShowDailyProgress] = useState(false);
   const [selectedRealStuffCard, setSelectedRealStuffCard] = useState(null);
   const [showRealStuffModal, setShowRealStuffModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('Home');
 
   const {
     activities,
@@ -42,6 +44,7 @@ export default function HomeScreen({ navigation }) {
       <View style={{ flex: 1, backgroundColor: 'white' }}>
         <StatusBar style="dark" />
         <AppHeader navigation={navigation} />
+        <TopTabBar activeTab={activeTab} onTabChange={setActiveTab} />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 20 }}
@@ -198,6 +201,7 @@ export default function HomeScreen({ navigation }) {
       <View style={{ flex: 1, backgroundColor: 'white' }}>
         <StatusBar style="dark" />
         <AppHeader navigation={navigation} />
+        <TopTabBar activeTab={activeTab} onTabChange={setActiveTab} />
         {showDailyProgress ? (
           <DailyProgressPage
             activities={activities}
