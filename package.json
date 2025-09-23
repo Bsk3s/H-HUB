@@ -94,6 +94,7 @@
     "@react-native/metro-config": "^0.80.2",
     "autoprefixer": "^10.4.21",
     "babel-plugin-module-resolver": "^5.0.2",
+    "babel-preset-expo": "11",
     "expo-dev-client": "~5.2.4",
     "jsonwebtoken": "^9.0.2",
     "react-native-css-transformer": "^2.0.0",
