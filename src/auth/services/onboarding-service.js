@@ -98,9 +98,10 @@ export async function getCompleteUserProfile(userId) {
  * Migrate AsyncStorage onboarding data to database
  * @param {string} userId - User's UUID
  */
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export async function migrateAsyncStorageToDatabase(userId) {
   try {
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     
     // Get data from AsyncStorage
     const [denomination, ageGroup, bibleVersion, spiritualJourney, faithChallenges] = await Promise.all([

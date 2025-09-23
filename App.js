@@ -11,6 +11,14 @@ import { FeedbackProvider } from './src/components/feedback/FeedbackProvider';
 import LandingScreen from './screens/LandingScreen';
 import HomeScreen from './screens/HomeScreen';
 import OnboardingNavigator from './components/navigation/OnboardingNavigator';
+import EmailSignInScreen from './screens/EmailSignInScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import HelpScreen from './screens/HelpScreen';
+import EditProfileScreen from './screens/EditProfileScreen';
+import ChangePasswordScreen from './screens/ChangePasswordScreen';
+import StoriesScreen from './screens/StoriesScreen';
+import StoryDetailScreen from './screens/StoryDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -39,35 +47,35 @@ export default function App() {
             </Stack.Screen>
             <Stack.Screen
               name="EmailSignIn"
-              component={require('./screens/EmailSignInScreen').default}
+              component={EmailSignInScreen}
             />
             <Stack.Screen
               name="Profile"
-              component={require('./screens/ProfileScreen').default}
+              component={ProfileScreen}
             />
             <Stack.Screen
               name="Settings"
-              component={require('./screens/SettingsScreen').default}
+              component={SettingsScreen}
             />
             <Stack.Screen
               name="Help"
-              component={require('./screens/HelpScreen').default}
+              component={HelpScreen}
             />
             <Stack.Screen
               name="EditProfile"
-              component={require('./screens/EditProfileScreen').default}
+              component={EditProfileScreen}
             />
             <Stack.Screen
               name="ChangePassword"
-              component={require('./screens/ChangePasswordScreen').default}
+              component={ChangePasswordScreen}
             />
             <Stack.Screen
               name="Stories"
-              component={require('./screens/StoriesScreen').default}
+              component={StoriesScreen}
             />
             <Stack.Screen
               name="StoryDetail"
-              component={require('./screens/StoryDetailScreen').default}
+              component={StoryDetailScreen}
             />
           </Stack.Navigator>
           <StatusBar style="auto" />

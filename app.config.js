@@ -18,6 +18,7 @@ export default {
             "supportsTablet": true,
             "bundleIdentifier": "com.bsk3s.heavenlyhub",
             "buildNumber": "201",
+            "jsEngine": "hermes",
             "infoPlist": {
                 "ITSAppUsesNonExemptEncryption": false,
                 "NSCameraUsageDescription": "This app uses the camera for video calls",
