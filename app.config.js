@@ -17,7 +17,7 @@ export default {
         "ios": {
             "supportsTablet": true,
             "bundleIdentifier": "com.bsk3s.heavenlyhub",
-                "buildNumber": "205",
+                "buildNumber": "206",
             "jsEngine": "hermes",
             "infoPlist": {
                 "ITSAppUsesNonExemptEncryption": false,
