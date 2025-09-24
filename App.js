@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import { LogBox } from 'react-native';
 
 // Import providers
 import { AuthProvider } from './src/auth/context';
@@ -23,6 +24,9 @@ import StoryDetailScreen from './screens/StoryDetailScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  // Suppress ugly error messages in production
+  LogBox.ignoreAllLogs(true);
+  
   return (
     <FeedbackProvider>
       <AuthProvider>
