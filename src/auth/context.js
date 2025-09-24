@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// Import WebBrowser properly
-import * as WebBrowser from 'expo-web-browser';
+// Import WebBrowser with default import for Hermes compatibility
+import { openAuthSessionAsync } from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { handleAuthCallback } from './services/social-auth';
 import * as AuthSession from 'expo-auth-session';
@@ -247,7 +247,7 @@ const AuthProvider = ({ children }) => {
         console.log('🌐 OAuth URL:', data.url);
         console.log('🔗 Expected redirect:', redirectUrl);
         
-        const result = await WebBrowser.openAuthSessionAsync(
+        const result = await openAuthSessionAsync(
           data.url,
           redirectUrl,
           {
@@ -365,7 +365,7 @@ const AuthProvider = ({ children }) => {
         console.log('🌐 OAuth URL:', data.url);
         console.log('🔗 Expected redirect:', redirectUrl);
         
-        const result = await WebBrowser.openAuthSessionAsync(
+        const result = await openAuthSessionAsync(
           data.url,
           redirectUrl,
           {

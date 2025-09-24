@@ -14,7 +14,6 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bsk3s.heavenlyhub",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "This app uses the camera for video calls",
@@ -27,7 +26,6 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.bsk3s.heavenlyhub",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -55,7 +53,6 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "scheme": "com.bsk3s.heavenlyhub",
     "updates": {
       "enabled": false
     },
@@ -73,8 +70,7 @@
           }
         }
       ],
-      "@livekit/react-native-expo-plugin",
-      "expo-dev-client"
+      "@livekit/react-native-expo-plugin"
     ],
     "extra": {
       "router": {

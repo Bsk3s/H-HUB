@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, Animated, StyleSheet, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -19,64 +19,61 @@ const Toast = ({
   const translateY = useRef(new Animated.Value(position === 'top' ? -100 : 100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (visible) {
-      // Haptic feedback based on type
-      switch (type) {
-        case 'success':
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          break;
-        case 'error':
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          break;
-        case 'warning':
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          break;
-        default:
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-
-      // Show animation
+  const hideToast = useMemo(() => {
+    return () => {
       Animated.parallel([
         Animated.timing(translateY, {
-          toValue: 0,
+          toValue: position === 'top' ? -100 : 100,
           duration: 300,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 1,
+          toValue: 0,
           duration: 300,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        if (onHide) onHide();
+      });
+    };
+  }, [translateY, opacity, position, onHide]);
 
-      // Auto hide after duration
-      const timer = setTimeout(() => {
-        hideToast();
-      }, duration);
+  useEffect(() => {
+    if (!visible) return;
 
-      return () => clearTimeout(timer);
-    } else {
-      hideToast();
+    // Haptic feedback based on type
+    switch (type) {
+      case 'success':
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        break;
+      case 'error':
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        break;
+      case 'warning':
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        break;
+      default:
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  }, [visible, type, duration]);
 
-  const hideToast = () => {
+    // Show animation
     Animated.parallel([
       Animated.timing(translateY, {
-        toValue: position === 'top' ? -100 : 100,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
       }),
-    ]).start(() => {
-      if (onHide) onHide();
-    });
-  };
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Auto hide after duration
+    const timer = setTimeout(hideToast, duration);
+    return () => clearTimeout(timer);
+  }, [visible, type, duration, hideToast]);
 
   const getToastConfig = () => {
     switch (type) {

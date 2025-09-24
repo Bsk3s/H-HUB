@@ -87,8 +87,18 @@ export default function SignInSlider({ isOpen, onClose, navigation }) {
   const handleAppleSignIn = async () => {
     setLocalError('');
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       console.log('🍎 Apple Sign In pressed');
+      console.log('signInWithApple function:', typeof signInWithApple);
+      console.log('Haptics.impactAsync:', typeof Haptics.impactAsync);
+      
+      if (typeof Haptics.impactAsync === 'function') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      
+      if (typeof signInWithApple !== 'function') {
+        throw new Error('signInWithApple is not a function');
+      }
+      
       const success = await signInWithApple();
       if (success) {
         console.log('✅ Apple Sign In successful');
@@ -113,8 +123,18 @@ export default function SignInSlider({ isOpen, onClose, navigation }) {
   const handleGoogleSignIn = async () => {
     setLocalError('');
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       console.log('🌟 Google Sign In pressed');
+      console.log('signInWithGoogle function:', typeof signInWithGoogle);
+      console.log('Haptics.impactAsync:', typeof Haptics.impactAsync);
+      
+      if (typeof Haptics.impactAsync === 'function') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      
+      if (typeof signInWithGoogle !== 'function') {
+        throw new Error('signInWithGoogle is not a function');
+      }
+      
       const success = await signInWithGoogle();
       if (success) {
         console.log('✅ Google Sign In successful');

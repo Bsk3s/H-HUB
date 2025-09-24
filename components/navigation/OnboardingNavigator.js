@@ -546,14 +546,21 @@ function SignUpScreen({ navigation }) {
   const handleAppleSignUp = async () => {
     setLocalError('');
     try {
-      console.log('🍎 Apple Sign Up pressed');
+      console.log('🍎 Apple Sign Up pressed (using signInWithApple for OAuth)');
+      console.log('signInWithApple function type:', typeof signInWithApple);
+      
+      if (typeof signInWithApple !== 'function') {
+        throw new Error('signInWithApple is not a function');
+      }
+      
+      // OAuth sign-in automatically creates account if it doesn't exist
       const success = await signInWithApple();
       if (success) {
-        console.log('✅ Apple Sign Up successful');
+        console.log('✅ Apple OAuth successful - account created/signed in');
         navigation.popToTop(); // Complete onboarding flow
       }
     } catch (error) {
-      console.error('Apple sign up error:', error);
+      console.error('Apple OAuth error:', error);
       setLocalError(error.message || 'Failed to sign up with Apple');
     }
   };
@@ -561,14 +568,21 @@ function SignUpScreen({ navigation }) {
   const handleGoogleSignUp = async () => {
     setLocalError('');
     try {
-      console.log('🌟 Google Sign Up pressed');
+      console.log('🌟 Google Sign Up pressed (using signInWithGoogle for OAuth)');
+      console.log('signInWithGoogle function type:', typeof signInWithGoogle);
+      
+      if (typeof signInWithGoogle !== 'function') {
+        throw new Error('signInWithGoogle is not a function');
+      }
+      
+      // OAuth sign-in automatically creates account if it doesn't exist
       const success = await signInWithGoogle();
       if (success) {
-        console.log('✅ Google Sign Up successful');
+        console.log('✅ Google OAuth successful - account created/signed in');
         navigation.popToTop(); // Complete onboarding flow
       }
     } catch (error) {
-      console.error('Google sign up error:', error);
+      console.error('Google OAuth error:', error);
       setLocalError(error.message || 'Failed to sign up with Google');
     }
   };

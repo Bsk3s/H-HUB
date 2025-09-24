@@ -5,7 +5,7 @@ import TopTabBar from '../components/navigation/TopTabBar';
 
 // Import production-ready screens
 import BibleScreen from './BibleScreen';
-import StudyScreen from './StudyScreen';
+import StudyNavigator from '../components/navigation/StudyNavigator';
 import ChatScreen from './ChatScreen';
 import { StatusBar } from 'expo-status-bar';
 import ErrorBoundary from '../src/components/ErrorBoundary';
@@ -23,6 +23,7 @@ import DailyProgressPage from '../features/activities/components/DailyProgressPa
 
 // Import hooks
 import useActivities from '../features/activities/hooks/useActivities';
+import { useLiveKitVoiceChat } from '../app/hooks/useLiveKitVoiceChat';
 
 // Import data
 import { realStuffCards, thisCantBeJustMe } from '../data/homeData';
@@ -44,12 +45,19 @@ export default function HomeScreen({ navigation }) {
     activityLogs
   } = useActivities();
 
+  // Global LiveKit Voice Chat - persists across tabs
+  const voiceChat = useLiveKitVoiceChat();
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'white' }}>
         <StatusBar style="dark" />
         <AppHeader navigation={navigation} />
-        <TopTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TopTabBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          voiceChatActive={voiceChat.isConnected}
+        />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 20 }}
@@ -158,14 +166,12 @@ export default function HomeScreen({ navigation }) {
   const renderHomeContent = () => (
     <>
       {/* Daily Verse */}
-      <View style={{ marginTop: 24 }}>
+      <View style={{ marginTop: 32 }}>
         <DailyVerse />
       </View>
 
-
-
       {/* Daily Progress */}
-      <View style={{ marginTop: 32 }}>
+      <View style={{ marginTop: 120 }}>§
         <DailyProgressRow
           activities={activities}
           onActivitySelect={handleActivitySelect}
@@ -175,7 +181,7 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       {/* The Real Stuff */}
-      <View style={{ marginTop: 32 }}>
+      <View style={{ marginTop: 85 }}>
         <RealStuffSection
           cards={realStuffCards}
           onCardPress={handleRealStuffCardPress}
@@ -183,7 +189,7 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       {/* This Can't Be Just Me */}
-      <View style={{ marginTop: 32, marginBottom: 24 }}>
+      <View style={{ marginTop: 85, marginBottom: 40 }}>
         <StoriesSection
           stories={thisCantBeJustMe}
           navigation={navigation}
@@ -206,7 +212,11 @@ export default function HomeScreen({ navigation }) {
       <View style={{ flex: 1, backgroundColor: 'white' }}>
         <StatusBar style="dark" />
         <AppHeader navigation={navigation} />
-        <TopTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TopTabBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          voiceChatActive={voiceChat.isConnected}
+        />
 
         {/* Home Tab - with ScrollView and DailyProgress logic */}
         {activeTab === 'Home' && (
@@ -222,35 +232,43 @@ export default function HomeScreen({ navigation }) {
             ) : (
               <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 0 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
                 showsVerticalScrollIndicator={false}
                 alwaysBounceVertical
               >
                 {/* Daily Verse */}
-                <DailyVerse />
+                <View style={{ marginTop: 32 }}>
+                  <DailyVerse />
+                </View>
 
                 {/* Daily Progress */}
-                <DailyProgressRow
-                  activities={activities}
-                  onViewAll={() => setShowDailyProgress(true)}
-                  onActivitySelect={handleActivitySelect}
-                  getCurrentProgress={getCurrentProgress}
-                />
+                <View style={{ marginTop: 64 }}>
+                  <DailyProgressRow
+                    activities={activities}
+                    onViewAll={() => setShowDailyProgress(true)}
+                    onActivitySelect={handleActivitySelect}
+                    getCurrentProgress={getCurrentProgress}
+                  />
+                </View>
 
                 {/* Real Stuff Section */}
-                <RealStuffSection
-                  cards={realStuffCards}
-                  onCardPress={handleRealStuffCardPress}
-                />
+                <View style={{ marginTop: 56 }}>
+                  <RealStuffSection
+                    cards={realStuffCards}
+                    onCardPress={handleRealStuffCardPress}
+                  />
+                </View>
 
                 {/* Stories Section */}
-                <StoriesSection
-                  stories={thisCantBeJustMe}
-                  navigation={navigation}
-                  onStoryPress={(story) => {
-                    navigation.navigate('StoryDetail', { storyId: story.id });
-                  }}
-                />
+                <View style={{ marginTop: 56 }}>
+                  <StoriesSection
+                    stories={thisCantBeJustMe}
+                    navigation={navigation}
+                    onStoryPress={(story) => {
+                      navigation.navigate('StoryDetail', { storyId: story.id });
+                    }}
+                  />
+                </View>
               </ScrollView>
             )}
           </>
@@ -262,11 +280,15 @@ export default function HomeScreen({ navigation }) {
         )}
 
         {activeTab === 'Study' && (
-          <StudyScreen navigation={navigation} />
+          <StudyNavigator />
         )}
 
         {activeTab === 'Chat' && (
-          <ChatScreen navigation={navigation} />
+          <ChatScreen
+            navigation={navigation}
+            onTabChange={setActiveTab}
+            voiceChat={voiceChat}
+          />
         )}
 
         {/* Activity Modal */}

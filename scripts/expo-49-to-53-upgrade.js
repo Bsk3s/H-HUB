@@ -266,3 +266,4 @@ function calculateSuccessProbability(major, minor, compatible) {
 
 console.log('\n🚀 Ready to upgrade? This analysis shows it\'s definitely possible!');
 
+

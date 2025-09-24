@@ -74,7 +74,7 @@ const StoryCard = ({ story, onPress }) => {
       >
         {/* Background Effect Layer */}
         <View style={styles.backgroundEffect} />
-        
+
         {/* Category Badge */}
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryEmoji}>
@@ -92,7 +92,7 @@ const StoryCard = ({ story, onPress }) => {
 
         {/* Action Button */}
         <View style={styles.actionContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={handlePress}
           >
@@ -112,16 +112,18 @@ const StoryCard = ({ story, onPress }) => {
 const styles = StyleSheet.create({
   cardContainer: {
     marginRight: 20,
-  },
-  gradient: {
-    borderRadius: 24,
-    padding: 24,
-    minHeight: 180,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
+    borderRadius: 24,
+    backgroundColor: '#60a5fa', // Default background color for shadow efficiency
+  },
+  gradient: {
+    borderRadius: 24,
+    padding: 24,
+    minHeight: 180,
     justifyContent: 'space-between',
   },
   backgroundEffect: {

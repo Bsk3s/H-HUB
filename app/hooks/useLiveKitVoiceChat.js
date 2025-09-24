@@ -1,23 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
-import { Room } from 'livekit-client';
-import { 
-  AudioSession, 
-  registerGlobals 
-} from '@livekit/react-native';
 import SpiritualAPI from '../../services/api';
 
-// Initialize LiveKit for React Native
-registerGlobals();
+// Conditionally import LiveKit based on environment
+let Room, AudioSession, registerGlobals;
+const IS_PRODUCTION = process.env.EXPO_NO_DEV_CLIENT === '1';
 
-/**
- * LiveKit Voice Chat Hook - FULL ORIGINAL WORKING IMPLEMENTATION
- * Maintains the same API interface for seamless migration
- */
+if (!IS_PRODUCTION) {
+  try {
+    const livekit = require('livekit-client');
+    const rnLivekit = require('@livekit/react-native');
+    Room = livekit.Room;
+    AudioSession = rnLivekit.AudioSession;
+    registerGlobals = rnLivekit.registerGlobals;
+
+    // Register globals for LiveKit
+    registerGlobals();
+  } catch (error) {
+    console.log('LiveKit not available:', error.message);
+  }
+}
+
 export function useLiveKitVoiceChat() {
-  // For now, simulate auth - we'll add real auth context later
-  const user = { id: `mobile-user-${Date.now()}` }; // Temporary user simulation
-  
-  // State management - maintain same API as WebSocket version
   const [conversationState, setConversationState] = useState('idle');
   const [isListening, setIsListening] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -27,31 +30,36 @@ export function useLiveKitVoiceChat() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [voiceLevel, setVoiceLevel] = useState(0);
   const [conversationId, setConversationId] = useState(null);
-  
-  // LiveKit specific state
-  const [room, setRoom] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isActive, setIsActive] = useState(false);
+
+  const roomRef = useRef(null);
   const initialized = useRef(false);
 
-  // Derived state for UI consistency
+  // For now, simulate auth - we'll add real auth context later
+  const user = { id: `mobile-user-${Date.now()}` };
+
   const hasError = !!error;
-  const statusText = isConnected ? 'Connected' : 
-                    conversationState === 'connecting' ? 'Connecting...' : 
-                    hasError ? 'Error' : 'Disconnected';
-  const statusColor = isConnected ? '#4CAF50' : 
-                     conversationState === 'connecting' ? '#FF9800' : 
-                     hasError ? '#F44336' : '#9E9E9E';
+  const statusText = conversationState === 'connecting' ? 'Connecting...' :
+    conversationState === 'connected' ? 'Connected' :
+      conversationState === 'error' ? 'Error' :
+        hasError ? 'Error' :
+          IS_PRODUCTION ? 'LiveKit Disabled (Production)' : 'Disconnected';
+  const statusColor = conversationState === 'connecting' ? '#FF9800' :
+    conversationState === 'connected' ? '#4CAF50' :
+      conversationState === 'error' ? '#F44336' :
+        hasError ? '#F44336' :
+          IS_PRODUCTION ? '#9E9E9E' : '#9E9E9E';
 
   useEffect(() => {
     if (initialized.current) return;
-    
+
     // Don't initialize if user is not authenticated
     if (!user?.id) {
       console.log('⏳ Waiting for user authentication before initializing LiveKit voice chat...');
       return;
     }
-    
+
     initialized.current = true;
     // Use setTimeout to avoid state update during render
     setTimeout(() => {
@@ -61,30 +69,44 @@ export function useLiveKitVoiceChat() {
   }, [user]);
 
   const startVoiceChat = async (character = 'Adina') => {
+    if (IS_PRODUCTION) {
+      console.log('⚠️ LiveKit is disabled in production builds - using stub mode');
+      setError('Voice chat is not available in this build');
+      setConversationState('error');
+      return;
+    }
+
+    if (!Room || !AudioSession) {
+      console.log('LiveKit modules not available');
+      setError('LiveKit modules not available');
+      setConversationState('error');
+      return;
+    }
+
     try {
       setConversationState('connecting');
       setError(null);
       setIsActive(true);
-      
+
       console.log(`🚀 Starting LiveKit voice chat with ${character}...`);
-      
+
       // Start audio session before connecting
       console.log('🎵 Starting audio session...');
       await AudioSession.startAudioSession();
-      
+
       // Get token from backend
       console.log('🎫 Requesting token from backend...');
       const { token, roomName, character: charName, serverUrl } = await SpiritualAPI.getSpiritualToken(character);
       setConversationId(roomName);
-      
+
       console.log(`🎯 Got token - Room: ${roomName}, Character: ${charName}`);
-      
+
       // Dispatch agent (character joins the room)
       console.log(`🤖 Dispatching ${charName} agent...`);
       SpiritualAPI.dispatchAgent(roomName, charName).catch(err => {
         console.log(`❌ Agent dispatch failed: ${err.message}`);
       });
-      
+
       // Create and configure room
       const newRoom = new Room({
         adaptiveStream: true,
@@ -104,107 +126,71 @@ export function useLiveKitVoiceChat() {
         setIsListening(true);
       });
 
-      newRoom.on('disconnected', (reason) => {
-        console.log('📞 Disconnected from room:', reason);
+      newRoom.on('disconnected', () => {
+        console.log('❌ Disconnected from LiveKit room');
         setConversationState('idle');
         setIsConnected(false);
         setIsListening(false);
+        setIsRecording(false);
+        setIsPlaying(false);
         setIsActive(false);
-        
-        // Check if disconnection was unexpected (not user-initiated)
-        if (reason && !reason.includes('CLIENT_INITIATED')) {
-          console.log('🔄 Unexpected disconnection, showing reconnect option...');
-          setError(`Connection lost. Tap mic to reconnect.`);
-        }
-      });
-
-      newRoom.on('participantConnected', (participant) => {
-        console.log(`👋 ${participant.identity} joined (likely ${charName} agent)`);
-        if (participant.identity.includes('agent') || participant.identity.includes(charName)) {
-          setIsListening(true);
-          setIsProcessing(false);
-        }
       });
 
       newRoom.on('trackSubscribed', (track, publication, participant) => {
-        console.log(`🎵 Audio track from ${participant.identity}`);
+        console.log(`🎵 Track subscribed: ${track.kind} from ${participant.identity}`);
         if (track.kind === 'audio') {
           setIsPlaying(true);
-          setIsListening(false);
-          track.attach();
-          console.log(`🔊 Audio playback enabled for ${participant.identity}`);
+          // Audio will automatically play through the device speakers
         }
       });
 
       newRoom.on('trackUnsubscribed', (track, publication, participant) => {
+        console.log(`🔇 Track unsubscribed: ${track.kind} from ${participant.identity}`);
         if (track.kind === 'audio') {
-          console.log(`🔇 Audio track ended from ${participant.identity}`);
           setIsPlaying(false);
-          setIsListening(true);
         }
       });
 
-      newRoom.on('error', (error) => {
-        console.log(`❌ Room error: ${error.message}`);
-        setError(`Connection error: ${error.message}`);
-        setConversationState('error');
+      newRoom.on('participantConnected', (participant) => {
+        console.log(`👤 Participant connected: ${participant.identity}`);
       });
 
-      // Connect to room
-      console.log('🔌 Connecting to LiveKit room...');
+      newRoom.on('participantDisconnected', (participant) => {
+        console.log(`👋 Participant disconnected: ${participant.identity}`);
+      });
+
+      // Connect to the room
+      console.log(`🔗 Connecting to room: ${serverUrl}`);
       await newRoom.connect(serverUrl, token);
-      setRoom(newRoom);
-      
+
+      roomRef.current = newRoom;
+
       // Enable microphone
-      try {
-        console.log('🎤 Enabling microphone...');
-        await newRoom.localParticipant.setMicrophoneEnabled(true);
-        setIsRecording(true);
-        console.log('✅ Microphone enabled successfully');
-      } catch (micError) {
-        console.log(`❌ Microphone setup failed: ${micError.message}`);
-        setError(`Microphone error: ${micError.message}`);
-      }
-      
-    } catch (error) {
-      console.log(`❌ Failed to start voice chat: ${error.message}`);
+      console.log('🎤 Enabling microphone...');
+      await newRoom.localParticipant.setMicrophoneEnabled(true);
+      setIsRecording(true);
+
+    } catch (err) {
+      console.error('❌ Failed to start voice chat:', err);
+      setError(err.message);
       setConversationState('error');
       setIsActive(false);
-      setIsConnected(false);
-      setIsListening(false);
-      
-      // Provide user-friendly error messages
-      let userMessage = 'Connection failed. ';
-      if (error.message.includes('network') || error.message.includes('timeout')) {
-        userMessage += 'Check your internet connection and try again.';
-      } else if (error.message.includes('permission') || error.message.includes('microphone')) {
-        userMessage += 'Microphone permission required.';
-      } else if (error.message.includes('token') || error.message.includes('auth')) {
-        userMessage += 'Authentication failed. Try restarting the app.';
-      } else if (error.message.includes('HTTP error! status: 500')) {
-        userMessage += 'Server temporarily unavailable. Try again in a moment.';
-      } else {
-        userMessage += 'Tap mic to try again.';
-      }
-      
-      setError(userMessage);
     }
   };
 
   const endVoiceChat = async () => {
     try {
-      console.log('🔌 Ending voice chat...');
-      
-      if (room) {
-        await room.disconnect();
-        setRoom(null);
+      console.log('🛑 Ending voice chat...');
+
+      if (roomRef.current) {
+        await roomRef.current.disconnect();
+        roomRef.current = null;
       }
-      
-      // Stop audio session
-      console.log('🎵 Stopping audio session...');
-      await AudioSession.stopAudioSession();
-      
-      // Reset all state
+
+      if (!IS_PRODUCTION && AudioSession) {
+        await AudioSession.stopAudioSession();
+      }
+
       setConversationState('idle');
       setIsConnected(false);
       setIsListening(false);
@@ -214,54 +200,61 @@ export function useLiveKitVoiceChat() {
       setIsActive(false);
       setConversationId(null);
       setError(null);
-      
-      console.log('👋 Voice chat ended successfully');
-    } catch (error) {
-      console.log(`❌ Error ending voice chat: ${error.message}`);
-      setError(`Error ending chat: ${error.message}`);
+
+      console.log('✅ Voice chat ended successfully');
+    } catch (err) {
+      console.error('❌ Error ending voice chat:', err);
+      setError(err.message);
     }
   };
 
   const toggleListening = async () => {
-    if (!room) return;
-    
+    if (IS_PRODUCTION) {
+      console.log('LiveKit is disabled in production builds.');
+      return;
+    }
+
+    if (!roomRef.current) {
+      console.log('❌ No active room connection');
+      return;
+    }
+
     try {
-      const currentlyEnabled = room.localParticipant.isMicrophoneEnabled;
-      await room.localParticipant.setMicrophoneEnabled(!currentlyEnabled);
-      setIsRecording(!currentlyEnabled);
-      setIsListening(!currentlyEnabled);
-      console.log(`🎤 Microphone ${!currentlyEnabled ? 'enabled' : 'disabled'}`);
-    } catch (error) {
-      console.log(`❌ Error toggling microphone: ${error.message}`);
-      setError(`Microphone error: ${error.message}`);
+      const newRecordingState = !isRecording;
+      await roomRef.current.localParticipant.setMicrophoneEnabled(newRecordingState);
+      setIsRecording(newRecordingState);
+      setIsListening(newRecordingState);
+
+      console.log(`🎤 Microphone ${newRecordingState ? 'enabled' : 'disabled'}`);
+    } catch (err) {
+      console.error('❌ Error toggling microphone:', err);
+      setError(err.message);
     }
   };
 
   const sendTextMessage = async (message) => {
+    if (IS_PRODUCTION) {
+      console.log('LiveKit is disabled in production builds.');
+      setError('Cannot send message: LiveKit is disabled in production builds.');
+      return;
+    }
+
+    if (!roomRef.current || !conversationId) {
+      console.log('❌ No active conversation');
+      setError('No active conversation');
+      return;
+    }
+
     try {
-      if (!room || !isConnected) {
-        throw new Error('Not connected to voice chat');
-      }
-      
-      console.log(`💬 Sending text message: "${message}"`);
-      
-      // Send data message through LiveKit room
-      const data = JSON.stringify({
-        type: 'text_message',
-        content: message,
-        timestamp: Date.now()
-      });
-      
-      await room.localParticipant.publishData(
-        new TextEncoder().encode(data), 
-        { reliable: true }
-      );
-      
+      console.log(`💬 Sending text message: ${message}`);
+
+      // Send message through our API
+      await SpiritualAPI.sendTextMessage(conversationId, message);
+
       console.log('✅ Text message sent successfully');
-      
-    } catch (error) {
-      console.error('❌ Error sending text message:', error);
-      setError(`Failed to send message: ${error.message}`);
+    } catch (err) {
+      console.error('❌ Error sending text message:', err);
+      setError(err.message);
     }
   };
 
@@ -270,7 +263,6 @@ export function useLiveKitVoiceChat() {
   };
 
   return {
-    // State
     conversationState,
     isListening,
     isRecording,
@@ -285,8 +277,6 @@ export function useLiveKitVoiceChat() {
     hasError,
     statusText,
     statusColor,
-    
-    // Actions
     startVoiceChat,
     endVoiceChat,
     toggleListening,
@@ -295,5 +285,4 @@ export function useLiveKitVoiceChat() {
   };
 }
 
-// Export as default for compatibility
 export { useLiveKitVoiceChat as useWebSocketVoiceChat };

@@ -17,12 +17,18 @@ export default {
         "ios": {
             "supportsTablet": true,
             "bundleIdentifier": "com.bsk3s.heavenlyhub",
-            "buildNumber": "203",
+            "buildNumber": "204",
             "jsEngine": "hermes",
             "infoPlist": {
                 "ITSAppUsesNonExemptEncryption": false,
                 "NSCameraUsageDescription": "This app uses the camera for video calls",
-                "NSMicrophoneUsageDescription": "This app uses the microphone for voice calls"
+                "NSMicrophoneUsageDescription": "This app uses the microphone for voice calls",
+                "CFBundleURLTypes": [
+                    {
+                        "CFBundleURLName": "com.bsk3s.heavenlyhub",
+                        "CFBundleURLSchemes": ["com.bsk3s.heavenlyhub"]
+                    }
+                ]
             },
             "config": {
                 "usesNonExemptEncryption": false
@@ -63,6 +69,17 @@ export default {
             "bundler": "metro"
         },
         "scheme": "com.bsk3s.heavenlyhub",
+        "linking": {
+            "prefixes": ["com.bsk3s.heavenlyhub://"],
+            "config": {
+                "screens": {
+                    "auth": {
+                        "path": "/auth/callback",
+                        "exact": true
+                    }
+                }
+            }
+        },
         "updates": {
             "enabled": false
         },

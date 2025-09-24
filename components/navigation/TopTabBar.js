@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, useWindowDimensions } from 'react-native'
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-function TopTabBar({ activeTab, onTabChange }) {
+function TopTabBar({ activeTab, onTabChange, voiceChatActive = false }) {
   const { width } = useWindowDimensions();
 
   const tabs = [
@@ -62,16 +62,29 @@ function TopTabBar({ activeTab, onTabChange }) {
               height: '100%'
             }}
           >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: '500',
-                zIndex: 10,
-                color: activeTab === tab.id ? '#000000' : '#6B7280'
-              }}
-            >
-              {tab.label}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', zIndex: 10 }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '500',
+                  color: activeTab === tab.id ? '#000000' : '#6B7280'
+                }}
+              >
+                {tab.label}
+              </Text>
+              {/* Voice chat indicator for Chat tab */}
+              {tab.id === 'Chat' && voiceChatActive && (
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: '#10B981',
+                    marginLeft: 6,
+                  }}
+                />
+              )}
+            </View>
           </TouchableOpacity>
         ))}
       </View>

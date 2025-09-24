@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  View, 
-  TextInput, 
-  StyleSheet, 
-  ActivityIndicator, 
-  Alert, 
-  TouchableOpacity, 
-  ScrollView, 
-  KeyboardAvoidingView, 
-  Platform, 
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   Text,
   SafeAreaView
 } from 'react-native';
@@ -39,7 +39,7 @@ export default function NoteEditorScreen({ route, navigation }) {
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Use a ref to track the creation status to avoid stale closures in debounce
   const isCreatingRef = useRef(false);
   const isNewNote = !noteId;
@@ -59,7 +59,7 @@ export default function NoteEditorScreen({ route, navigation }) {
       setIsLoading(true);
       console.log('📖 Loading note:', noteId);
       const loadedNote = await getNoteById(noteId);
-      
+
       if (loadedNote) {
         setNote(loadedNote);
         setTitle(loadedNote.title || '');
@@ -79,12 +79,12 @@ export default function NoteEditorScreen({ route, navigation }) {
       setIsLoading(false);
     }
   };
-  
+
   const handleSave = async (content) => {
     // Check the ref for the most up-to-date value.
     // This prevents a race condition when creating a new note.
     if (isNewNote && isCreatingRef.current) {
-      return; 
+      return;
     }
 
     setIsSaving(true);
@@ -99,16 +99,16 @@ export default function NoteEditorScreen({ route, navigation }) {
         console.log('💾 Creating new note:', noteData);
         const newNote = await createNote(folderId, noteData);
         console.log('✅ Note created successfully:', newNote.id);
-        
+
         showSuccess('Note created successfully!');
-        
+
         // Navigate back after successful creation
         navigation.goBack();
       } else {
         console.log('💾 Updating note:', noteId, noteData);
         await updateNote(noteId, noteData);
         console.log('✅ Note updated successfully');
-        
+
         showSuccess('Note saved!', { duration: 2000 });
       }
     } catch (error) {
@@ -121,14 +121,14 @@ export default function NoteEditorScreen({ route, navigation }) {
       setTimeout(() => setIsSaving(false), 1000);
     }
   };
-  
+
   // Debounced save function
   const debouncedSave = useCallback(debounce(handleSave, 1500), [title, noteId, folderId]);
 
   const handleContentChange = (html) => {
     debouncedSave(html);
   };
-  
+
   const handleTitleChange = (text) => {
     setTitle(text);
     richText.current?.getContentHtml().then(content => {
@@ -142,8 +142,8 @@ export default function NoteEditorScreen({ route, navigation }) {
       'Are you sure you want to permanently delete this note?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -185,15 +185,15 @@ export default function NoteEditorScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         {/* Header */}
         <View style={[styles.header, { paddingTop: 8, paddingBottom: 12 }]}>
           <View style={styles.headerLeft}>
-            {isSaving ? 
+            {isSaving ?
               <ActivityIndicator size="small" color="#999" /> :
               <Text style={styles.statusText}>
                 {isNewNote ? 'New Note' : 'Saved'}
@@ -214,7 +214,7 @@ export default function NoteEditorScreen({ route, navigation }) {
 
         {/* Content */}
         <View style={styles.contentContainer}>
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={styles.scrollContainer}
             keyboardShouldPersistTaps="handled"
           >
@@ -227,25 +227,27 @@ export default function NoteEditorScreen({ route, navigation }) {
               autoFocus={isNewNote}
               multiline={false}
             />
-            <RichEditor
-              ref={richText}
-              style={styles.editor}
-              initialContentHTML={note?.content || ''}
-              onChange={handleContentChange}
-              placeholder="Start writing your note here..."
-              editorStyle={{
-                contentCSSText: `
-                  font-size: 16px; 
-                  color: #1a1a1a; 
-                  line-height: 1.6;
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  padding: 16px;
-                  background-color: #ffffff;
-                  min-height: 300px;
-                `,
-                placeholderColor: '#9CA3AF',
-              }}
-            />
+            <View style={styles.editorContainer}>
+              <RichEditor
+                ref={richText}
+                style={styles.editor}
+                initialContentHTML={note?.content || ''}
+                onChange={handleContentChange}
+                placeholder="Start writing your note here..."
+                editorStyle={{
+                  contentCSSText: `
+                    font-size: 16px; 
+                    color: #1a1a1a; 
+                    line-height: 1.6;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    padding: 16px;
+                    background-color: #ffffff;
+                    min-height: 300px;
+                  `,
+                  placeholderColor: '#9CA3AF',
+                }}
+              />
+            </View>
           </ScrollView>
         </View>
 
@@ -365,14 +367,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginHorizontal: 16,
     marginBottom: 16,
+  },
+  editorContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   toolbar: {
     backgroundColor: '#ffffff',

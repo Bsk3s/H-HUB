@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  Dimensions, 
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
   StyleSheet,
-  SafeAreaView 
+  SafeAreaView
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -72,7 +72,7 @@ const StoriesScreen = ({ navigation }) => {
 
         {/* Middle Section - Title */}
         <View style={styles.gridCardContent}>
-          <Text 
+          <Text
             style={[
               styles.gridCardTitle,
               { fontSize: story.title.length > 50 ? 15 : 17 }
@@ -114,13 +114,13 @@ const StoriesScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
-        
+
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>
             This Can't Be Just Me
@@ -132,13 +132,13 @@ const StoriesScreen = ({ navigation }) => {
       </View>
 
       {/* Stories Grid */}
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {createRows()}
-        
+
         {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -188,17 +188,19 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    borderRadius: 24,
+    backgroundColor: '#60a5fa', // Default background color for shadow efficiency
   },
   gridCardGradient: {
     borderRadius: 24,
     padding: 16,
     height: 216,
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
   },
   gridCardHeader: {
     flexDirection: 'row',

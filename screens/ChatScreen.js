@@ -7,7 +7,7 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-// import { useLiveKitVoiceChat } from '../app/hooks/useLiveKitVoiceChat'; // Temporarily disabled for production build
+// LiveKit hook now comes from HomeScreen as props
 // Removed useNavigation as we use custom navigation from App.js
 import { showErrorAlert, showRetryErrorAlert, getUserFriendlyErrorMessage } from '../src/utils/errorHandling';
 import ErrorBoundary from '../src/components/ErrorBoundary';
@@ -22,23 +22,29 @@ import VoiceControls from '../app/components/chat/VoiceControls';
 import useVoiceAnimation from '../app/components/chat/useVoiceAnimation';
 
 // Full LiveKit Voice Chat integrated into Chat tab
-const Chat = ({ navigation }) => {
+const Chat = ({ navigation, onTabChange, voiceChat }) => {
   const [logs, setLogs] = useState([]);
   const [activeAI, setActiveAI] = useState('adina'); // Lowercase for HB1 compatibility
   const scrollViewRef = useRef(null);
   const { showInfo } = useFeedbackContext();
-  
+
   // Handle Bible navigation with feedback
   const handleBibleNavigation = () => {
     console.log('📖 Bible button pressed - navigating to Bible');
     showInfo('Opening Bible...', { duration: 1500 });
-    navigation.navigate('Bible');
+
+    // Use the custom tab system navigation
+    if (onTabChange) {
+      onTabChange('Bible');
+    } else {
+      console.log('📖 Navigation not available - onTabChange not provided');
+    }
   };
-  
+
   // Friendly Error Message Helpers
   const getFriendlyErrorTitle = (error) => {
     if (!error) return "Something went wrong";
-    
+
     if (error.includes('Microphone') || error.includes('microphone')) {
       return "Need microphone access";
     }
@@ -56,7 +62,7 @@ const Chat = ({ navigation }) => {
 
   const getFriendlyErrorMessage = (error) => {
     if (!error) return "Tap to try again";
-    
+
     if (error.includes('Microphone') || error.includes('microphone')) {
       return "Go to Settings > Privacy > Microphone to allow access";
     }
@@ -74,7 +80,7 @@ const Chat = ({ navigation }) => {
 
   const getRetryButtonText = (error) => {
     if (!error) return "Try Again";
-    
+
     if (error.includes('Microphone') || error.includes('microphone')) {
       return "Open Settings";
     }
@@ -83,7 +89,7 @@ const Chat = ({ navigation }) => {
     }
     return "Try Again";
   };
-  
+
   // HB1 Voice Animation Hook
   const {
     blobScale,
@@ -92,7 +98,7 @@ const Chat = ({ navigation }) => {
     particleOpacity,
     particleScale
   } = useVoiceAnimation(isListening);
-  
+
   // Quick replies data (from HB1)
   const quickReplies = [
     "Tell me more",
@@ -100,7 +106,8 @@ const Chat = ({ navigation }) => {
     "How does this apply to me?",
     "Explain further"
   ];
-  
+
+  // Destructure voice chat props from HomeScreen
   const {
     conversationState,
     isListening,
@@ -117,20 +124,20 @@ const Chat = ({ navigation }) => {
     toggleListening,
     sendTextMessage,
     clearError
-  } = useLiveKitVoiceChat();
+  } = voiceChat;
 
   // Capture console logs for real-time display
   useEffect(() => {
     const originalLog = console.log;
     console.log = (...args) => {
-      const timestamp = new Date().toLocaleTimeString('en-US', { 
+      const timestamp = new Date().toLocaleTimeString('en-US', {
         hour12: false,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
       });
       const message = args.join(' ');
-      
+
       setLogs(prevLogs => [...prevLogs.slice(-50), {
         timestamp: `[${timestamp}]`,
         message,
@@ -155,9 +162,6 @@ const Chat = ({ navigation }) => {
     setLogs([]);
   };
 
-  const checkBackend = () => {
-    console.log('🔄 Checking backend connection...');
-  };
 
   const handleStartChat = () => {
     const aiName = activeAI.charAt(0).toUpperCase() + activeAI.slice(1); // Capitalize for display
@@ -206,7 +210,7 @@ const Chat = ({ navigation }) => {
   const connectionStatus = isConnected ? 'Connected' : 'Disconnected';
 
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       screenName="Chat"
       onRetry={() => {
         // Reset chat state and reconnect
@@ -214,154 +218,154 @@ const Chat = ({ navigation }) => {
       }}
     >
       <SafeAreaView style={styles.container}>
-      {/* AI Selection Header - Clean and minimal */}
-      <View style={styles.floatingHeader}>
-        {/* Header Row with centered AI Toggle and right-aligned Bible Button */}
-        <View style={styles.headerRow}>
-          {/* Spacer for centering */}
-          <View style={styles.spacer} />
-          
-          {/* Beautiful HB1 AI Toggle - Centered */}
-          <AIToggle 
-            activeAI={activeAI} 
-            setActiveAI={setActiveAI} 
-          />
-          
-          {/* Bible Quick Access - Right aligned */}
-          <PressableWithFeedback 
-            style={styles.bibleButtonInline}
-            onPress={handleBibleNavigation}
-            hapticType="light"
-            scaleValue={0.95}
-          >
-            <Text style={styles.bibleIcon}>📖</Text>
-          </PressableWithFeedback>
+        {/* AI Selection Header - Clean and minimal */}
+        <View style={styles.floatingHeader}>
+          {/* Header Row with centered AI Toggle and right-aligned Bible Button */}
+          <View style={styles.headerRow}>
+            {/* Spacer for centering */}
+            <View style={styles.spacer} />
+
+            {/* Beautiful HB1 AI Toggle - Centered */}
+            <AIToggle
+              activeAI={activeAI}
+              setActiveAI={setActiveAI}
+            />
+
+            {/* Bible Quick Access - Right aligned */}
+            <PressableWithFeedback
+              style={styles.bibleButtonInline}
+              onPress={handleBibleNavigation}
+              hapticType="light"
+              scaleValue={0.95}
+            >
+              <Text style={styles.bibleIcon}>📖</Text>
+            </PressableWithFeedback>
+          </View>
+
+          {/* Connection Status - More spacing */}
+          <View style={styles.statusContainer}>
+            <View style={[styles.statusDot, isConnected ? styles.connected : styles.disconnected]} />
+            <Text style={styles.statusText}>{connectionStatus}</Text>
+
+            {/* Agent Connected Indicator */}
+            {isConnected && (
+              <View style={styles.agentIndicator}>
+                <View style={[
+                  styles.agentDot,
+                  activeAI === 'adina' ? styles.adinaAgent : styles.rafaAgent
+                ]} />
+                <Text style={[
+                  styles.agentText,
+                  activeAI === 'adina' ? styles.adinaText : styles.rafaText
+                ]}>
+                  {activeAI.charAt(0).toUpperCase() + activeAI.slice(1)} ready
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-        
-        {/* Connection Status - More spacing */}
-        <View style={styles.statusContainer}>
-          <View style={[styles.statusDot, isConnected ? styles.connected : styles.disconnected]} />
-          <Text style={styles.statusText}>{connectionStatus}</Text>
-          
-          {/* Agent Connected Indicator */}
-          {isConnected && (
-            <View style={styles.agentIndicator}>
-              <View style={[
-                styles.agentDot,
-                activeAI === 'adina' ? styles.adinaAgent : styles.rafaAgent
-              ]} />
-              <Text style={[
-                styles.agentText,
-                activeAI === 'adina' ? styles.adinaText : styles.rafaText
-              ]}>
-                {activeAI.charAt(0).toUpperCase() + activeAI.slice(1)} ready
+
+        {/* UNIFIED VOICE EXPERIENCE - Everything flows together */}
+        <View style={styles.unifiedVoiceArea}>
+          {/* Voice Visualization - Integrated */}
+          <VoiceVisualization
+            activeAI={activeAI}
+            isListening={isListening}
+            isConnected={isConnected}
+            isPlaying={isPlaying}
+            isProcessing={isProcessing}
+            voiceLevel={voiceLevel}
+            blobScale={blobScale}
+            glowOpacity={glowOpacity}
+            particles={particles}
+            particleOpacity={particleOpacity}
+            particleScale={particleScale}
+          />
+
+        </View>
+
+        {/* Quick Replies - COMPLETELY SEPARATE from blob */}
+        <View style={styles.quickRepliesSection}>
+          <QuickReplies
+            activeAI={activeAI}
+            quickReplies={quickReplies}
+            onQuickReply={handleQuickReply}
+          />
+        </View>
+
+        {/* Enhanced Status Message with Better Error Handling */}
+        <View style={styles.statusSection}>
+          {error ? (
+            <View style={styles.modernErrorContainer}>
+              <View style={styles.errorIcon}>
+                <Text style={styles.errorIconText}>😔</Text>
+              </View>
+              <View style={styles.errorContent}>
+                <Text style={styles.errorTitle}>
+                  {getFriendlyErrorTitle(error)}
+                </Text>
+                <Text style={styles.errorMessage}>
+                  {getFriendlyErrorMessage(error)}
+                </Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={() => {
+                    clearError();
+                    // Smart retry based on error type
+                    if (error.includes('Connection failed') || error.includes('Connection lost') || error.includes('Microphone')) {
+                      handleVoiceAction();
+                    }
+                  }}
+                  accessible={true}
+                  accessibilityLabel="Retry connection"
+                >
+                  <Text style={styles.retryButtonText}>
+                    {getRetryButtonText(error)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                style={styles.modernDismissButton}
+                onPress={clearError}
+                accessible={true}
+                accessibilityLabel="Dismiss error"
+              >
+                <Text style={styles.modernDismissText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.statusMessageContainer}>
+              <Text style={styles.statusMessageText}>
+                {isConnected ? '✨ Ready for conversation' :
+                  isActive ? '🔄 Connecting...' :
+                    (conversationState === 'error' || conversationState === 'failed') ? '😔 Connection trouble' :
+                      '🎤 Tap mic to start'}
               </Text>
+              {isConnected && (
+                <Text style={styles.statusSubtext}>
+                  Speak naturally or tap a quick reply
+                </Text>
+              )}
             </View>
           )}
         </View>
-      </View>
 
-      {/* UNIFIED VOICE EXPERIENCE - Everything flows together */}
-      <View style={styles.unifiedVoiceArea}>
-        {/* Voice Visualization - Integrated */}
-        <VoiceVisualization
-          activeAI={activeAI}
+        {/* Voice Controls - Bottom fixed */}
+        <VoiceControls
           isListening={isListening}
-          isConnected={isConnected}
-          isPlaying={isPlaying}
-          isProcessing={isProcessing}
-          voiceLevel={voiceLevel}
-          blobScale={blobScale}
-          glowOpacity={glowOpacity}
-          particles={particles}
-          particleOpacity={particleOpacity}
-          particleScale={particleScale}
-        />
-
-      </View>
-
-      {/* Quick Replies - COMPLETELY SEPARATE from blob */}
-      <View style={styles.quickRepliesSection}>
-        <QuickReplies 
+          setIsListening={handleVoiceAction}
           activeAI={activeAI}
-          quickReplies={quickReplies}
-          onQuickReply={handleQuickReply}
+          showQuickReplies={true}
+          setShowQuickReplies={() => { }}
+          isConnected={isConnected}
+          isSessionActive={isActive}
+          conversationState={isConnected ? 'connected' : isActive ? 'connecting' : error ? 'error' : 'disconnected'}
+          onEndConversation={endVoiceChat}
+          hasError={!!error}
         />
-      </View>
-
-      {/* Enhanced Status Message with Better Error Handling */}
-      <View style={styles.statusSection}>
-        {error ? (
-          <View style={styles.modernErrorContainer}>
-            <View style={styles.errorIcon}>
-              <Text style={styles.errorIconText}>😔</Text>
-            </View>
-            <View style={styles.errorContent}>
-              <Text style={styles.errorTitle}>
-                {getFriendlyErrorTitle(error)}
-              </Text>
-              <Text style={styles.errorMessage}>
-                {getFriendlyErrorMessage(error)}
-              </Text>
-              <TouchableOpacity 
-                style={styles.retryButton}
-                onPress={() => {
-                  clearError();
-                  // Smart retry based on error type
-                  if (error.includes('Connection failed') || error.includes('Connection lost') || error.includes('Microphone')) {
-                    handleVoiceAction();
-                  }
-                }}
-                accessible={true}
-                accessibilityLabel="Retry connection"
-              >
-                <Text style={styles.retryButtonText}>
-                  {getRetryButtonText(error)}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity 
-              style={styles.modernDismissButton}
-              onPress={clearError}
-              accessible={true}
-              accessibilityLabel="Dismiss error"
-            >
-              <Text style={styles.modernDismissText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.statusMessageContainer}>
-            <Text style={styles.statusMessageText}>
-              {isConnected ? '✨ Ready for conversation' : 
-               isActive ? '🔄 Connecting...' : 
-               (conversationState === 'error' || conversationState === 'failed') ? '😔 Connection trouble' :
-               '🎤 Tap mic to start'}
-            </Text>
-            {isConnected && (
-              <Text style={styles.statusSubtext}>
-                Speak naturally or tap a quick reply
-              </Text>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Voice Controls - Bottom fixed */}
-      <VoiceControls
-        isListening={isListening}
-        setIsListening={handleVoiceAction}
-        activeAI={activeAI}
-        showQuickReplies={true}
-        setShowQuickReplies={() => {}}
-        isConnected={isConnected}
-        isSessionActive={isActive}
-        conversationState={isConnected ? 'connected' : isActive ? 'connecting' : error ? 'error' : 'disconnected'}
-        onEndConversation={endVoiceChat}
-        hasError={!!error}
-      />
 
 
-    </SafeAreaView>
+      </SafeAreaView>
     </ErrorBoundary>
   );
 };

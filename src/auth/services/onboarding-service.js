@@ -34,7 +34,7 @@ export async function saveOnboardingData(userId, onboardingData) {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     console.log('Successfully saved onboarding data to database');
     return data;
@@ -60,7 +60,7 @@ export async function getOnboardingData(userId) {
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
-    
+
     if (error) throw error;
     return data;
   } catch (error) {
@@ -85,7 +85,7 @@ export async function getCompleteUserProfile(userId) {
       .select('*')
       .eq('id', userId)
       .maybeSingle();
-    
+
     if (error) throw error;
     return data;
   } catch (error) {
@@ -102,7 +102,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export async function migrateAsyncStorageToDatabase(userId) {
   try {
-    
+
     // Get data from AsyncStorage
     const [denomination, ageGroup, bibleVersion, spiritualJourney, faithChallenges] = await Promise.all([
       AsyncStorage.getItem('selectedDenomination'),
@@ -130,7 +130,7 @@ export async function migrateAsyncStorageToDatabase(userId) {
 
     // Save to database
     const result = await saveOnboardingData(userId, onboardingData);
-    
+
     if (result) {
       // Clear AsyncStorage after successful migration
       await Promise.all([
@@ -140,10 +140,10 @@ export async function migrateAsyncStorageToDatabase(userId) {
         AsyncStorage.removeItem('selectedSpiritualJourney'),
         AsyncStorage.removeItem('selectedFaithChallenges')
       ]);
-      
+
       console.log('Successfully migrated AsyncStorage data to database');
     }
-    
+
     return result;
   } catch (error) {
     console.error('Error migrating AsyncStorage data:', error.message);
@@ -166,7 +166,7 @@ export async function clearUserOnboardingData(userId) {
       .from('user_onboarding_data')
       .delete()
       .eq('user_id', userId);
-    
+
     if (error) throw error;
     console.log('Successfully cleared onboarding data from database');
     return true;
@@ -197,7 +197,7 @@ export async function updateOnboardingData(userId, updates) {
       .eq('user_id', userId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   } catch (error) {
