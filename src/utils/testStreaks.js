@@ -5,6 +5,7 @@ import {
   isActivityCompletedOnDate,
   recalculateStreaks 
 } from '../services/streaks';
+import { setDailyProgress } from '../services/activities';
 
 /**
  * Test streak calculations for a user
@@ -49,8 +50,7 @@ export const simulateProgressAndTestStreaks = async (userId, activityType, progr
   try {
     console.log(`🎮 Simulating ${progress} progress for ${activityType}...`);
     
-    // Import and use the setDailyProgress function
-    const { setDailyProgress } = await import('../services/activities');
+    // Use the imported setDailyProgress function
     
     const result = await setDailyProgress(userId, activityType, progress);
     console.log('💾 Progress saved:', result);
