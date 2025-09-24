@@ -57,7 +57,7 @@ importers:
         specifier: ^7.3.26
         version: 7.3.26(@react-navigation/native@7.1.17(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native-safe-area-context@5.4.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native-screens@4.11.1(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)
       '@supabase/supabase-js':
-        specifier: ^2.57.4
+        specifier: 2.57.4
         version: 2.57.4
       '@types/dom-mediacapture-record':
         specifier: ^1.0.22
