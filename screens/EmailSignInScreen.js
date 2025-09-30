@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
   SafeAreaView,
   StyleSheet,
   KeyboardAvoidingView,
@@ -38,9 +38,9 @@ export default function EmailSignInScreen({ navigation }) {
     try {
       const success = await login(email, password);
       if (success) {
-        console.log('✅ Email Sign In successful');
-        // Navigate to main app - this should be handled by the auth context
-        navigation.navigate('Home');
+        console.log('✅ Email Sign In successful - AppStack will be rendered automatically');
+        // Auth context will automatically switch to AppStack
+        // No need to manually navigate
       }
     } catch (err) {
       console.error('Email sign in error:', err);
@@ -58,7 +58,7 @@ export default function EmailSignInScreen({ navigation }) {
     console.log('📝 Sign Up pressed - navigating to onboarding');
     navigation.navigate('Onboarding');
   };
-  
+
   const isValid = email.length > 0 && password.length > 0;
 
   return (
@@ -76,7 +76,7 @@ export default function EmailSignInScreen({ navigation }) {
               Sign in to continue your journey.
             </Text>
           </View>
-          
+
           <View style={styles.formSection}>
             <View style={styles.inputContainer}>
               <TextInput
@@ -103,7 +103,7 @@ export default function EmailSignInScreen({ navigation }) {
               />
             </View>
           </View>
-          
+
           <TouchableOpacity style={styles.forgotPasswordContainer} onPress={handleForgotPassword}>
             <Text style={styles.forgotPasswordText}>
               Forgot password?
@@ -121,7 +121,7 @@ export default function EmailSignInScreen({ navigation }) {
               title="Sign In"
               disabled={!isValid || loading}
             />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.signUpPrompt}
               onPress={handleSignUp}
             >

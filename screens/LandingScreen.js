@@ -21,7 +21,7 @@ export default function LandingScreen({ navigation }) {
 
   // Use Auth Context instead of manually checking AsyncStorage
   const { user, initializing } = useAuth();
-  
+
   // Animated text hooks
   const { text, textColor } = useRotatingText();
   const { displayedText } = useTypingText("Use Heavenly Hub to", 35);
@@ -38,17 +38,13 @@ export default function LandingScreen({ navigation }) {
         console.log('🔄 Auth still initializing, waiting...');
         return;
       }
-      
+
       console.log('🔍 Checking auth status after initialization...');
-      
-      const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
-      console.log('📋 Onboarding completed:', onboardingCompleted);
-      
-      // Use auth context state instead of AsyncStorage
+
+      // Auth provider will automatically switch navigation stacks
+      // No need to manually navigate - just log the state
       if (user) {
-        console.log('✅ Auth check complete - redirecting to main app');
-        console.log('🧭 Navigation: Landing → Home {}');
-        navigation.navigate('Home'); // Navigate to main app
+        console.log('✅ User authenticated - AppStack will be rendered automatically');
       } else {
         console.log('👋 No active session found - staying on welcome screen');
       }
@@ -106,14 +102,14 @@ export default function LandingScreen({ navigation }) {
         </View>
       </View>
 
-              {/* Sign In Slider */}
-        <View style={[styles.slidersContainer, { bottom: 0 }]}>
-          <SignInSlider
-            isOpen={isSignInOpen}
-            onClose={() => setIsSignInOpen(false)}
-            navigation={navigation}
-          />
-        </View>
+      {/* Sign In Slider */}
+      <View style={[styles.slidersContainer, { bottom: 0 }]}>
+        <SignInSlider
+          isOpen={isSignInOpen}
+          onClose={() => setIsSignInOpen(false)}
+          navigation={navigation}
+        />
+      </View>
     </SafeAreaView>
   );
 }
