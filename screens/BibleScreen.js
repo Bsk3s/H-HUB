@@ -79,8 +79,8 @@ const FloatingNavigation = ({ onPrevious, onNext }) => {
   };
 
   return (
-    <View 
-      style={{ 
+    <View
+      style={{
         position: 'absolute',
         bottom: 30,
         left: 0,
@@ -100,9 +100,9 @@ const FloatingNavigation = ({ onPrevious, onNext }) => {
         style={buttonStyle}
         activeOpacity={0.8}
       >
-        <Ionicons 
-          name="chevron-back" 
-          size={32} 
+        <Ionicons
+          name="chevron-back"
+          size={32}
           color="rgba(0, 0, 0, 0.8)" // Dark icon for translucent background
         />
       </TouchableOpacity>
@@ -113,9 +113,9 @@ const FloatingNavigation = ({ onPrevious, onNext }) => {
         style={buttonStyle}
         activeOpacity={0.8}
       >
-        <Ionicons 
-          name="chevron-forward" 
-          size={32} 
+        <Ionicons
+          name="chevron-forward"
+          size={32}
           color="rgba(0, 0, 0, 0.8)" // Dark icon for translucent background
         />
       </TouchableOpacity>
@@ -135,52 +135,52 @@ const FRIENDLY_VERSION_NAMES = {
 // EXACT HB1 Bible Component
 const Bible = ({ route }) => {
   const scrollViewRef = useRef(null);
-  
+
   // Use the enhanced useBibleVersions hook
-  const { 
-    versions, 
-    categorizedVersions, 
-    loading: versionsLoading, 
+  const {
+    versions,
+    categorizedVersions,
+    loading: versionsLoading,
     error: versionsError,
     currentVersion: hookCurrentVersion,
-    changeVersion 
+    changeVersion
   } = useBibleVersions();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Bible data state
   const [books, setBooks] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [currentBook, setCurrentBook] = useState(null);
   const [currentChapter, setCurrentChapter] = useState(null);
   const [verses, setVerses] = useState([]);
-  
+
   // Use hook's current version
   const currentVersion = hookCurrentVersion;
-  
+
   // UI state
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showBookModal, setShowBookModal] = useState(false);
   const [showChapterModal, setShowChapterModal] = useState(false);
   const [selectedBookInModal, setSelectedBookInModal] = useState(null);
   const [alphabeticalOrder, setAlphabeticalOrder] = useState(false);
-  
+
   // Navigation state for verse targeting
   const [targetVerse, setTargetVerse] = useState(null);
   const [highlightedVerse, setHighlightedVerse] = useState(null);
   const [pendingScriptureRef, setPendingScriptureRef] = useState(null);
-  
+
   // Scroll state for floating navigation
   const [showFloatingNav, setShowFloatingNav] = useState(false);
 
   // Get clean, unique core versions for modal display
   const getCoreVersionsForDisplay = () => {
     if (!categorizedVersions.priorityEnglish) return [];
-    
+
     const uniqueVersions = [];
     const seenAbbreviations = new Set();
-    
+
     // Filter out duplicates and only show versions in our friendly names list
     categorizedVersions.priorityEnglish.forEach(version => {
       const abbrev = version.abbreviation || version.nameLocal || version.name;
@@ -194,11 +194,11 @@ const Bible = ({ route }) => {
         });
       }
     });
-    
+
 
     return uniqueVersions;
   };
-  
+
   // Load books when current version changes (from hook)
   useEffect(() => {
     if (currentVersion && !versionsLoading) {
@@ -209,9 +209,9 @@ const Bible = ({ route }) => {
   // Handle verse navigation from route params
   useEffect(() => {
 
-    
+
     const scriptureRef = route?.params?.scriptureRef;
-    
+
     if (scriptureRef) {
       if (currentVersion && books.length > 0) {
         console.log('📖 Ready to navigate! Attempting navigation to:', scriptureRef);
@@ -233,6 +233,18 @@ const Bible = ({ route }) => {
     }
   }, [pendingScriptureRef, currentVersion, books]);
 
+  // Auto-scroll to target verse when verses are loaded
+  useEffect(() => {
+    if (!targetVerse || verses.length === 0) return;
+
+    console.log('📖 ⏳ Verses loaded, scheduling scroll to verse', targetVerse);
+    const timer = setTimeout(() => {
+      scrollToTargetVerse();
+    }, 1500); // Give FlatList more time to calculate dynamic heights
+
+    return () => clearTimeout(timer);
+  }, [verses.length, targetVerse]); // Only depend on verses.length, not the whole array
+
   // Update loading state based on hook
   useEffect(() => {
     setIsLoading(versionsLoading);
@@ -245,13 +257,21 @@ const Bible = ({ route }) => {
     try {
       const data = await getBooks(versionId);
       setBooks(data);
-      
+
+      // If there's a scripture reference in route params, don't auto-load saved book
+      // Let the scripture navigation handle it instead
+      const scriptureRef = route?.params?.scriptureRef;
+      if (scriptureRef) {
+        console.log('📖 📚 Books loaded, scripture navigation will take over:', scriptureRef);
+        return; // Exit early - let useEffect handle navigation
+      }
+
       // Try to load saved book or use first available
       const savedBookId = await AsyncStorage.getItem('currentBookId');
-      const defaultBook = savedBookId ? 
-        data.find(b => b.id === savedBookId) : 
+      const defaultBook = savedBookId ?
+        data.find(b => b.id === savedBookId) :
         data[0];
-      
+
       if (defaultBook) {
         setCurrentBook(defaultBook);
         await AsyncStorage.setItem('currentBookId', defaultBook.id);
@@ -267,9 +287,9 @@ const Bible = ({ route }) => {
     try {
       const data = await getChapters(versionId, bookId);
       setChapters(data);
-      
+
       let selectedChapter;
-      
+
       if (targetChapterNumber) {
         // Look for the target chapter number
         selectedChapter = data.find(c => {
@@ -279,20 +299,20 @@ const Bible = ({ route }) => {
         });
         console.log('📖 Target chapter found:', selectedChapter);
       }
-      
+
       if (!selectedChapter) {
         // Fall back to saved chapter or first available
         const savedChapterId = await AsyncStorage.getItem('currentChapterId');
-        selectedChapter = savedChapterId ? 
-          data.find(c => c.id === savedChapterId) : 
+        selectedChapter = savedChapterId ?
+          data.find(c => c.id === savedChapterId) :
           data[0];
       }
-      
+
       if (selectedChapter) {
         setCurrentChapter(selectedChapter);
         await AsyncStorage.setItem('currentChapterId', selectedChapter.id);
         await loadVerses(versionId, selectedChapter.id);
-        
+
         // Mark loading as complete after initial setup
         setIsLoading(false);
       } else {
@@ -307,16 +327,9 @@ const Bible = ({ route }) => {
   const loadVerses = async (versionId, chapterId) => {
     try {
       const data = await getChapterContent(versionId, chapterId);
-      
+
       if (data && data.verses) {
         setVerses(data.verses);
-        
-        // If we have a target verse, scroll to it after verses load
-        if (targetVerse) {
-          setTimeout(() => {
-            scrollToTargetVerse();
-          }, 500); // Give time for verses to render
-        }
       } else {
         setVerses([]);
       }
@@ -329,7 +342,7 @@ const Bible = ({ route }) => {
   // Handle scroll events to show/hide floating navigation
   const handleScroll = (event) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
-    
+
     // Show floating nav after scrolling down 100 pixels
     const shouldShow = currentScrollY > 100;
     if (shouldShow !== showFloatingNav) {
@@ -339,14 +352,47 @@ const Bible = ({ route }) => {
 
   const scrollToTargetVerse = () => {
     if (scrollViewRef.current && targetVerse && verses.length > 0) {
+      console.log('📖 🎯 Attempting to scroll to verse:', targetVerse);
       // Find the target verse index in the verses array
       const targetIndex = verses.findIndex(verse => verse.number === targetVerse);
+      console.log('📖 📍 Target verse index:', targetIndex, 'out of', verses.length, 'verses');
+
       if (targetIndex !== -1) {
-        scrollViewRef.current.scrollToIndex({ 
-          index: targetIndex, 
-          animated: true,
-          viewPosition: 0.3 // Position it 30% from the top
-        });
+        try {
+          scrollViewRef.current.scrollToIndex({
+            index: targetIndex,
+            animated: true,
+            viewPosition: 0.3 // Position it 30% from the top
+          });
+          console.log('📖 ✅ Scroll initiated to verse', targetVerse);
+
+          // Clear target verse after scrolling to prevent re-triggers
+          setTimeout(() => {
+            setTargetVerse(null);
+            setHighlightedVerse(null);
+          }, 1000);
+        } catch (error) {
+          console.log('📖 ⚠️ scrollToIndex failed:', error);
+          // Fallback: Wait a bit longer for layout, then retry
+          setTimeout(() => {
+            try {
+              scrollViewRef.current?.scrollToIndex({
+                index: targetIndex,
+                animated: true,
+                viewPosition: 0.3
+              });
+              console.log('📖 ✅ Retry scroll successful');
+            } catch (retryError) {
+              console.log('📖 ❌ Retry also failed, giving up');
+            }
+          }, 500);
+
+          // Clear target verse after scrolling
+          setTimeout(() => {
+            setTargetVerse(null);
+            setHighlightedVerse(null);
+          }, 1500);
+        }
       }
     }
   };
@@ -364,13 +410,13 @@ const Bible = ({ route }) => {
       await AsyncStorage.removeItem('currentBibleVersionId');
       await AsyncStorage.removeItem('currentBookId');
       await AsyncStorage.removeItem('currentChapterId');
-      
+
       // Reset state
       setCurrentVersion(null);
       setCurrentBook(null);
       setCurrentChapter(null);
       setVerses([]);
-      
+
       // Reload Bible versions with fresh start
       await loadBibleVersions();
     } catch (err) {
@@ -385,7 +431,7 @@ const Bible = ({ route }) => {
       setSelectedBookInModal(null);
       return;
     }
-    
+
     // Set the selected book in modal to show its chapters
     setSelectedBookInModal(book);
     await loadChapters(currentVersion.id, book.id);
@@ -414,18 +460,18 @@ const Bible = ({ route }) => {
   const navigateToScripture = async (scriptureRef) => {
     try {
       console.log('📖 🎯 Starting navigation to scripture:', scriptureRef);
-      
+
       // Check prerequisites
       if (!currentVersion) {
         console.error('📖 ❌ No current version available');
         return;
       }
-      
+
       if (!books || books.length === 0) {
         console.error('📖 ❌ No books available');
         return;
       }
-      
+
       const parsed = parseScriptureReference(scriptureRef);
       if (!parsed) {
         console.error('📖 ❌ Could not parse scripture reference:', scriptureRef);
@@ -462,10 +508,10 @@ const Bible = ({ route }) => {
       console.log('📖 🔄 Loading book and chapter...');
       setCurrentBook(targetBook);
       await AsyncStorage.setItem('currentBookId', targetBook.id);
-      
+
       // Load chapters for this book with target chapter
       await loadChapters(currentVersion.id, targetBook.id, parsed.chapter);
-      
+
       console.log('📖 ✅ Scripture navigation completed successfully!');
 
     } catch (error) {
@@ -478,9 +524,9 @@ const Bible = ({ route }) => {
   // Navigation functions for floating buttons
   const handleNavigate = async (direction) => {
     if (!currentBook || !currentChapter || !chapters.length) return;
-    
+
     const currentChapterIndex = chapters.findIndex(c => c.id === currentChapter.id);
-    
+
     if (direction === 'prev') {
       if (currentChapterIndex > 0) {
         // Go to previous chapter in same book
@@ -508,9 +554,9 @@ const Bible = ({ route }) => {
         }
       }
     }
-    
+
     // Scroll to top after navigation
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    scrollViewRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
   const changeBookAndGoToLastChapter = async (book) => {
@@ -571,7 +617,7 @@ const Bible = ({ route }) => {
             >
               <Text style={{ color: 'white', fontWeight: '600' }}>Try Again</Text>
             </TouchableOpacity>
-    
+
             <TouchableOpacity
               onPress={resetToEnglishVersion}
               style={{ backgroundColor: '#6B7280', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
@@ -587,7 +633,7 @@ const Bible = ({ route }) => {
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }}>
       <StatusBar style="dark" />
-      
+
       {/* Warning banner for non-English versions */}
       {currentVersion && currentVersion.language?.id !== 'eng' && (
         <View style={{ backgroundColor: '#FEF3C7', borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingHorizontal: 16, paddingVertical: 12 }}>
@@ -600,7 +646,7 @@ const Bible = ({ route }) => {
                 Current version: {currentVersion.abbreviation} ({currentVersion.language?.name || 'Unknown'})
               </Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={resetToEnglishVersion}
               style={{ backgroundColor: '#D97706', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
             >
@@ -622,7 +668,7 @@ const Bible = ({ route }) => {
                 {currentBook?.name || 'Select Book'} {currentChapter?.number || '1'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowVersionModal(true)}
               style={{ backgroundColor: '#F3F4F6', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 }}
             >
@@ -661,8 +707,8 @@ const Bible = ({ route }) => {
               ) : null
             }
             renderItem={({ item: verse }) => (
-              <Text 
-                style={{ 
+              <Text
+                style={{
                   fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
                   fontSize: 18,
                   color: '#1F2937',
@@ -682,10 +728,20 @@ const Bible = ({ route }) => {
             updateCellsBatchingPeriod={100}
             scrollEventThrottle={16}
             onScroll={handleScroll}
-            contentContainerStyle={{ 
-              paddingHorizontal: 16, 
-              paddingTop: 24, 
-              paddingBottom: 120 
+            onScrollToIndexFailed={(info) => {
+              console.log('📖 ⚠️ scrollToIndexFailed, retrying with offset:', info);
+              // Wait for layout to complete, then scroll to offset
+              setTimeout(() => {
+                scrollViewRef.current?.scrollToOffset({
+                  offset: info.averageItemLength * info.index,
+                  animated: true,
+                });
+              }, 100);
+            }}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingTop: 24,
+              paddingBottom: 120
             }}
           />
         ) : (
@@ -724,7 +780,7 @@ const Bible = ({ route }) => {
                   <Ionicons name="close" size={24} color="#374151" />
                 </TouchableOpacity>
               </View>
-              
+
               <ScrollView style={{ maxHeight: 300 }}>
                 {/* Core Bible Versions */}
                 {(() => {
@@ -797,7 +853,7 @@ const Bible = ({ route }) => {
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   {!selectedBookInModal && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => setAlphabeticalOrder(!alphabeticalOrder)}
                       style={{ marginRight: 12, padding: 4 }}
                     >
@@ -817,7 +873,7 @@ const Bible = ({ route }) => {
                   </TouchableOpacity>
                 </View>
               </View>
-              
+
               {!selectedBookInModal ? (
                 // Book List View
                 <>
@@ -826,8 +882,8 @@ const Bible = ({ route }) => {
                   </Text>
                   <FlatList
                     key="book-list"
-                    data={alphabeticalOrder ? 
-                      [...books].sort((a, b) => a.name.localeCompare(b.name)) : 
+                    data={alphabeticalOrder ?
+                      [...books].sort((a, b) => a.name.localeCompare(b.name)) :
                       books
                     }
                     keyExtractor={(item) => item.id}
@@ -852,7 +908,7 @@ const Bible = ({ route }) => {
               ) : (
                 // Chapter List View
                 <>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => setSelectedBookInModal(null)}
                     style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}
                   >
@@ -949,7 +1005,7 @@ const Bible = ({ route }) => {
 // Main BibleScreen component wrapped in context
 export default function BibleScreen({ route }) {
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       screenName="Bible"
       onRetry={() => {
         // Clear any cached Bible data and retry

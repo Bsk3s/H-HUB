@@ -152,6 +152,9 @@ importers:
       expo-status-bar:
         specifier: ~2.2.3
         version: 2.2.3(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)
+      expo-superwall:
+        specifier: ^0.2.9
+        version: 0.2.9(@types/react@19.1.13)(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)(use-sync-external-store@1.5.0(react@19.0.0))
       expo-system-ui:
         specifier: ~2.4.0
         version: 2.4.0(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))
@@ -2767,6 +2770,13 @@ packages:
       react: '*'
       react-native: '*'
 
+  expo-superwall@0.2.9:
+    resolution: {integrity: sha512-s8sgNcZuFSzCIepMnTGfODDraxs+MxJ+Aq6/rVXndeffgGAXtdSBxS/eWJZ3U7XPv+F0vlPfjEj/FHpR+ILBKA==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
+
   expo-system-ui@2.4.0:
     resolution: {integrity: sha512-uaBAYeQtFzyE8WVcch2V3G243xvOf7vJkLzrIJ3rJ8NA3uZRmxF0lMMe75oMrAaLVXyr1Z+ZE6UZwh7x49FuIg==}
     peerDependencies:
@@ -5168,6 +5178,24 @@ packages:
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
+  zustand@5.0.8:
+    resolution: {integrity: sha512-gyPKpIaxY9XcO2vSMrLbiER7QMAMGOQZVRdJ6Zi782jkbzZygq5GI9nG8g+sMgitRtndwaBSl7uiqC49o1SSiw==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
 
 snapshots:
 
@@ -8653,6 +8681,17 @@ snapshots:
       react-native-edge-to-edge: 1.6.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)
       react-native-is-edge-to-edge: 1.2.1(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)
 
+  expo-superwall@0.2.9(@types/react@19.1.13)(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)(use-sync-external-store@1.5.0(react@19.0.0)):
+    dependencies:
+      expo: 53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)
+      react: 19.0.0
+      react-native: 0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0)
+      zustand: 5.0.8(@types/react@19.1.13)(react@19.0.0)(use-sync-external-store@1.5.0(react@19.0.0))
+    transitivePeerDependencies:
+      - '@types/react'
+      - immer
+      - use-sync-external-store
+
   expo-system-ui@2.4.0(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)):
     dependencies:
       '@react-native/normalize-color': 2.1.0
@@ -11283,3 +11322,9 @@ snapshots:
       zod: 3.25.76
 
   zod@3.25.76: {}
+
+  zustand@5.0.8(@types/react@19.1.13)(react@19.0.0)(use-sync-external-store@1.5.0(react@19.0.0)):
+    optionalDependencies:
+      '@types/react': 19.1.13
+      react: 19.0.0
+      use-sync-external-store: 1.5.0(react@19.0.0)

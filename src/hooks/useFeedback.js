@@ -92,23 +92,45 @@ export const useFeedback = () => {
       error = 'Something went wrong',
     } = messages;
 
+    let loadingToastId = null;
+
     try {
-      showInfo(loading);
+      // Show loading toast and track its ID
+      const toast = {
+        id: Date.now() + Math.random(),
+        message: loading,
+        type: 'info',
+        visible: true,
+        duration: 999999, // Very long duration since we'll hide it manually
+        position: 'top',
+      };
+      loadingToastId = toast.id;
+      setToasts(prev => [...prev, toast]);
+
       const result = await operation();
-      hideToast(); // Hide loading toast
+
+      // Hide loading toast
+      if (loadingToastId) {
+        hideToast(loadingToastId);
+      }
+
       showSuccess(success);
       return result;
     } catch (err) {
-      hideToast(); // Hide loading toast
+      // Hide loading toast
+      if (loadingToastId) {
+        hideToast(loadingToastId);
+      }
+
       showError(error);
       throw err;
     }
-  }, [showInfo, showSuccess, showError, hideToast]);
+  }, [showSuccess, showError, hideToast]);
 
   return {
     // Toast state
     toasts,
-    
+
     // Toast methods
     showToast,
     hideToast,

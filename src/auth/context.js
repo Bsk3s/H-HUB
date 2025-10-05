@@ -49,17 +49,22 @@ const AuthProvider = ({ children }) => {
         console.log('🔔 Auth state changed:', event);
       }
 
-      if (session?.user) {
-        console.log('✅ User authenticated:', session.user.email);
-        setUser(session.user);
-        // Set auth flag in AsyncStorage
-        AsyncStorage.setItem('isAuthenticated', 'true');
-      } else {
-        console.log('🚪 User signed out or no session');
+      // ✅ Update user state for any session that exists
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+        if (session?.user) {
+          console.log('✅ User authenticated:', session.user.email);
+          setUser(session.user);
+          // Set auth flag in AsyncStorage
+          AsyncStorage.setItem('isAuthenticated', 'true');
+        }
+      } else if (event === 'SIGNED_OUT') {
+        // Only log out on explicit SIGNED_OUT event
+        console.log('🚪 User explicitly signed out');
         setUser(null);
         // Clear auth flag in AsyncStorage
         AsyncStorage.setItem('isAuthenticated', 'false');
       }
+
       setInitializing(false);
     });
 
@@ -190,11 +195,18 @@ const AuthProvider = ({ children }) => {
 
       if (authUser) {
         console.log('✅ Registration successful for user:', authUser.email);
-        // Ensure user profile exists
-        await ensureUserProfile(authUser.id);
+
+        // Explicitly set user state immediately (don't wait for auth listener)
+        setUser(authUser);
+
+        // NOTE: We DON'T create the profile here anymore
+        // Profile will be created AFTER email verification
+        // This ensures only verified users appear in user_profiles table
+
         // Set auth flag in AsyncStorage
         await AsyncStorage.setItem('isAuthenticated', 'true');
         console.log('💾 isAuthenticated set in AsyncStorage');
+        console.log('🎯 User state updated, App.js should now route to EmailVerificationScreen');
       }
 
       return true;

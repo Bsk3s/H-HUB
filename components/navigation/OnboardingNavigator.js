@@ -1,20 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, TouchableOpacity, SafeAreaView, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import { Svg, Path } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 import ErrorBoundary from '../../src/components/ErrorBoundary';
 
 import Button from '../../components/ui/Button';
 import ProgressHeader, { STEP_COLORS } from '../../components/ui/ProgressHeader';
 import { useAuth } from '../../src/auth/context';
 
+// Onboarding screen order - used for progress tracking
+const ONBOARDING_SCREENS = [
+  'DenominationScreen',
+  'AgeScreen',
+  'BibleVersionScreen',
+  'SpiritualJourneyScreen',
+  'FaithChallengesScreen',
+  'GrowthScreen',
+  'PrayerHabitsScreen',
+  'SatisfactionScreen',
+  'ShiftScreen',
+  'FinalScreen',
+  'SignUpScreen'
+];
+
+// Helper to save onboarding progress
+async function saveOnboardingProgress(screenName) {
+  try {
+    const screenIndex = ONBOARDING_SCREENS.indexOf(screenName);
+    await AsyncStorage.setItem('onboardingProgress', JSON.stringify({
+      currentScreen: screenName,
+      currentStep: screenIndex + 1,
+      totalSteps: ONBOARDING_SCREENS.length,
+      completed: screenName === 'SignUpScreen'
+    }));
+    console.log(`📝 Onboarding progress saved: ${screenName} (${screenIndex + 1}/${ONBOARDING_SCREENS.length})`);
+  } catch (error) {
+    console.error('Error saving onboarding progress:', error);
+  }
+}
+
+// Helper to get onboarding progress
+async function getOnboardingProgress() {
+  try {
+    const progress = await AsyncStorage.getItem('onboardingProgress');
+    return progress ? JSON.parse(progress) : null;
+  } catch (error) {
+    console.error('Error getting onboarding progress:', error);
+    return null;
+  }
+}
+
+// Helper to clear onboarding progress
+async function clearOnboardingProgress() {
+  try {
+    await AsyncStorage.removeItem('onboardingProgress');
+    console.log('✅ Onboarding progress cleared');
+  } catch (error) {
+    console.error('Error clearing onboarding progress:', error);
+  }
+}
+
 // 5. Faith Challenges Screen - Multi-select with max 2 selections
 function FaithChallengesScreen({ navigation }) {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const MAX_SELECTIONS = 2;
+
+  useEffect(() => {
+    saveOnboardingProgress('FaithChallengesScreen');
+  }, []);
 
   const challenges = [
     { id: 1, emoji: '⏳', description: 'Finding time to read the Bible consistently' },
@@ -123,6 +180,10 @@ function GrowthScreen({ navigation }) {
     connection: 5,
   });
 
+  useEffect(() => {
+    saveOnboardingProgress('GrowthScreen');
+  }, []);
+
   const aspects = [
     { id: 'prayer', title: 'More consistency in prayer?', value: values.prayer },
     { id: 'scripture', title: 'More understanding of scripture?', value: values.scripture },
@@ -210,6 +271,10 @@ function PrayerHabitsScreen({ navigation }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    saveOnboardingProgress('PrayerHabitsScreen');
+  }, []);
+
   const options = [
     { id: 1, emoji: '📖', description: 'Reading the Bible daily but struggling with consistency' },
     { id: 2, emoji: '🎧', description: 'Listening to sermons, devotionals, or podcasts' },
@@ -286,6 +351,10 @@ function SatisfactionScreen({ navigation }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    saveOnboardingProgress('SatisfactionScreen');
+  }, []);
+
   const options = [
     { id: 'yes', emoji: '✅', description: "Yes, but I'd like to go deeper in my faith" },
     { id: 'no', emoji: '❌', description: 'No, I often feel stuck and unsure where to start' },
@@ -359,6 +428,10 @@ function ShiftScreen({ navigation }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    saveOnboardingProgress('ShiftScreen');
+  }, []);
+
   const options = [
     { id: 'yes', emoji: '✅', description: 'Yes, I want a structured way to grow spiritually' },
     { id: 'no', emoji: '🛑', description: 'No, I prefer to figure it out on my own' },
@@ -431,6 +504,10 @@ function ShiftScreen({ navigation }) {
 function FinalScreen({ navigation }) {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
+
+  useEffect(() => {
+    saveOnboardingProgress('FinalScreen');
+  }, []);
   const [loading, setLoading] = useState(false);
 
   const isValid = name.trim().length > 0 && age.trim().length > 0;
@@ -540,24 +617,43 @@ function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, signInWithGoogle, signInWithApple, loading } = useAuth();
   const [localError, setLocalError] = useState('');
+
+  useEffect(() => {
+    saveOnboardingProgress('SignUpScreen');
+  }, []);
+
+  // Custom back handler to ensure proper navigation
+  const handleBack = () => {
+    // Check if we can go back in the stack
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // No history in stack, manually navigate to FinalScreen
+      navigation.navigate('FinalScreen');
+    }
+  };
 
   const handleAppleSignUp = async () => {
     setLocalError('');
     try {
       console.log('🍎 Apple Sign Up pressed (using signInWithApple for OAuth)');
       console.log('signInWithApple function type:', typeof signInWithApple);
-      
+
       if (typeof signInWithApple !== 'function') {
         throw new Error('signInWithApple is not a function');
       }
-      
+
       // OAuth sign-in automatically creates account if it doesn't exist
       const success = await signInWithApple();
       if (success) {
-        console.log('✅ Apple OAuth successful - account created/signed in');
-        navigation.popToTop(); // Complete onboarding flow
+        console.log('✅ Apple OAuth successful - clearing onboarding progress');
+        await clearOnboardingProgress();
+        // OAuth providers auto-verify emails, so App.js will route to main app
+        console.log('🎯 Waiting for App.js to route (Apple auto-verifies)...');
       }
     } catch (error) {
       console.error('Apple OAuth error:', error);
@@ -570,16 +666,18 @@ function SignUpScreen({ navigation }) {
     try {
       console.log('🌟 Google Sign Up pressed (using signInWithGoogle for OAuth)');
       console.log('signInWithGoogle function type:', typeof signInWithGoogle);
-      
+
       if (typeof signInWithGoogle !== 'function') {
         throw new Error('signInWithGoogle is not a function');
       }
-      
+
       // OAuth sign-in automatically creates account if it doesn't exist
       const success = await signInWithGoogle();
       if (success) {
-        console.log('✅ Google OAuth successful - account created/signed in');
-        navigation.popToTop(); // Complete onboarding flow
+        console.log('✅ Google OAuth successful - clearing onboarding progress');
+        await clearOnboardingProgress();
+        // OAuth providers auto-verify emails, so App.js will route to main app
+        console.log('🎯 Waiting for App.js to route (Google auto-verifies)...');
       }
     } catch (error) {
       console.error('Google OAuth error:', error);
@@ -604,7 +702,11 @@ function SignUpScreen({ navigation }) {
       const success = await register(email, password);
       if (success) {
         console.log('✅ Email Sign Up successful');
-        navigation.popToTop(); // Complete onboarding flow
+        // DON'T clear onboarding progress yet!
+        // Keep it in case user needs to go back to fix email
+        // It will be cleared after email is verified
+        console.log('📝 Keeping onboarding progress for potential "wrong email" recovery');
+        console.log('🎯 Waiting for App.js to route to EmailVerificationScreen...');
       }
     } catch (error) {
       console.error('Email sign up error:', error);
@@ -627,7 +729,7 @@ function SignUpScreen({ navigation }) {
             <ProgressHeader
               currentStep={11}
               totalSteps={11}
-              onBack={() => navigation.goBack()}
+              onBack={handleBack}
             />
           </View>
 
@@ -635,6 +737,12 @@ function SignUpScreen({ navigation }) {
           <Text style={styles.signUpSubtitle}>
             This will let you save your progress.
           </Text>
+
+          {localError ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{localError}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.signUpInputsContainer}>
             <View style={styles.signUpInputWrapper}>
@@ -651,24 +759,46 @@ function SignUpScreen({ navigation }) {
 
             <View style={styles.signUpInputWrapper}>
               <TextInput
-                style={styles.signUpTextInput}
+                style={[styles.signUpTextInput, { paddingRight: 50 }]}
                 placeholder="Password"
                 placeholderTextColor="#666"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureTextEntry={!showPassword}
               />
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowPassword(!showPassword)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={24}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.signUpInputWrapper}>
               <TextInput
-                style={styles.signUpTextInput}
+                style={[styles.signUpTextInput, { paddingRight: 50 }]}
                 placeholder="Confirm Password"
                 placeholderTextColor="#666"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                secureTextEntry
+                secureTextEntry={!showConfirmPassword}
               />
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={24}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -714,6 +844,10 @@ function SignUpScreen({ navigation }) {
 function SpiritualJourneyScreen({ navigation }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    saveOnboardingProgress('SpiritualJourneyScreen');
+  }, []);
 
   const options = [
     {
@@ -820,6 +954,10 @@ function BibleVersionScreen({ navigation }) {
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    saveOnboardingProgress('BibleVersionScreen');
+  }, []);
+
   const bibleVersions = [
     { id: 1, name: 'New International Version (NIV)' },
     { id: 2, name: 'New King James (NKJV)' },
@@ -912,6 +1050,10 @@ function AgeScreen({ navigation }) {
   const [selectedAge, setSelectedAge] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    saveOnboardingProgress('AgeScreen');
+  }, []);
+
   const ageGroups = [
     { id: 1, label: '13-17' },
     { id: 2, label: '18-24' },
@@ -999,6 +1141,10 @@ function AgeScreen({ navigation }) {
 function DenominationScreen({ navigation, parentNavigation }) {
   const [selectedDenomination, setSelectedDenomination] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    saveOnboardingProgress('DenominationScreen');
+  }, []);
 
   const denominations = [
     { id: 1, label: 'Non - Denominational' },
@@ -1102,7 +1248,21 @@ function DenominationScreen({ navigation, parentNavigation }) {
 
 const Stack = createNativeStackNavigator();
 
-export default function OnboardingNavigator({ parentNavigation }) {
+export default function OnboardingNavigator({ parentNavigation, initialRoute }) {
+  const [initialRouteName, setInitialRouteName] = useState(initialRoute || 'DenominationScreen');
+
+  useEffect(() => {
+    // If no initial route passed, check AsyncStorage for saved progress
+    if (!initialRoute) {
+      getOnboardingProgress().then(progress => {
+        if (progress && progress.currentScreen) {
+          console.log(`🔄 Resuming onboarding from: ${progress.currentScreen}`);
+          setInitialRouteName(progress.currentScreen);
+        }
+      });
+    }
+  }, [initialRoute]);
+
   return (
     <ErrorBoundary
       screenName="Onboarding"
@@ -1115,8 +1275,9 @@ export default function OnboardingNavigator({ parentNavigation }) {
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
+          gestureEnabled: false, // Disable swipe back gestures
         }}
-        initialRouteName="DenominationScreen"
+        initialRouteName={initialRouteName}
       >
         <Stack.Screen name="DenominationScreen">
           {(props) => <DenominationScreen {...props} parentNavigation={parentNavigation} />}
@@ -1436,6 +1597,17 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 32,
   },
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    textAlign: 'center',
+  },
   signUpInputsContainer: {
     gap: 16,
   },
@@ -1444,12 +1616,24 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   signUpTextInput: {
+    flex: 1,
     height: 56,
     paddingHorizontal: 20,
     fontSize: 16,
     color: '#374151',
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 16,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
   },
   signUpButtonContainer: {
     marginTop: 40,

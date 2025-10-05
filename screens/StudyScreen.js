@@ -1,23 +1,49 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, FlatList, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
+import { getJournalsGroupedByPillar, getJournalCountsByPillar } from '../services/journalService';
 
-// EXACT HB1 FolderList Component (simplified without backend)
+// Auto-tagged Journal Folders Component
 const FolderList = () => {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [journalCounts, setJournalCounts] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  // Mock folder data - matches HB1 structure
+  // Load journal counts on mount
+  useEffect(() => {
+    loadJournalCounts();
+  }, []);
+
+  const loadJournalCounts = async () => {
+    setLoading(true);
+    const counts = await getJournalCountsByPillar();
+    setJournalCounts(counts);
+    setLoading(false);
+  };
+
+  // Auto-tagged folders based on pillars - only show if they have journals
+  const autoTaggedFolders = [
+    { id: 'Faith', name: 'Faith', noteCount: journalCounts.Faith || 0, emoji: '✝️' },
+    { id: 'Hope', name: 'Hope', noteCount: journalCounts.Hope || 0, emoji: '💙' },
+    { id: 'Prayer', name: 'Prayer', noteCount: journalCounts.Prayer || 0, emoji: '🙏' },
+    { id: 'Love', name: 'Love', noteCount: journalCounts.Love || 0, emoji: '❤️' },
+  ].filter(folder => folder.noteCount > 0); // Only show if has journals!
+
+  const totalJournals = Object.values(journalCounts).reduce((a, b) => a + b, 0);
+
   const folders = [
-    { id: 1, name: 'Bible Study', noteCount: 0, emoji: '📖' },
-    { id: 2, name: 'Sermons', noteCount: 0, emoji: '🎤' },
-    { id: 3, name: 'Prayer Requests', noteCount: 0, emoji: '🙏' },
-    { id: 4, name: 'Personal Reflections', noteCount: 0, emoji: '💭' }
+    // Show "All Notes" only if there are any journals
+    ...(totalJournals > 0 ? [{ id: 'all', name: 'All Notes', noteCount: totalJournals, emoji: '📝' }] : []),
+    // Add auto-tagged folders that have content
+    ...autoTaggedFolders,
+    // Manual folders (always show for user to add notes)
+    { id: 'bible-study', name: 'Bible Study', noteCount: 0, emoji: '📖' },
   ];
 
-  const filteredFolders = folders.filter(folder => 
+  const filteredFolders = folders.filter(folder =>
     folder.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -60,7 +86,7 @@ const FolderList = () => {
       {/* Create New Folder Section */}
       <View style={styles.createSection}>
         {!isCreatingFolder ? (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.createButton}
             onPress={() => setIsCreatingFolder(true)}
           >
@@ -78,7 +104,7 @@ const FolderList = () => {
               placeholderTextColor="#8E8E93"
             />
             <View style={styles.createActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => {
                   setIsCreatingFolder(false);
@@ -87,7 +113,7 @@ const FolderList = () => {
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleCreateFolder}
               >
@@ -99,23 +125,32 @@ const FolderList = () => {
       </View>
 
       {/* Folders List */}
-      <FlatList
-        data={filteredFolders}
-        renderItem={renderFolder}
-        keyExtractor={(item) => item.id.toString()}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
-      />
-
-      {/* Empty State */}
-      {filteredFolders.length === 0 && (
-        <View style={styles.emptyState}>
-          <Feather name="folder" size={50} color="#C7C7CC" />
-          <Text style={styles.emptyStateText}>No folders found</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Create your first folder to organize your notes
-          </Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading journals...</Text>
         </View>
+      ) : (
+        <>
+          <FlatList
+            data={filteredFolders}
+            renderItem={renderFolder}
+            keyExtractor={(item) => item.id.toString()}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContainer}
+          />
+
+          {/* Empty State */}
+          {filteredFolders.length === 0 && (
+            <View style={styles.emptyState}>
+              <Feather name="folder" size={50} color="#C7C7CC" />
+              <Text style={styles.emptyStateText}>No folders found</Text>
+              <Text style={styles.emptyStateSubtext}>
+                Create your first folder to organize your notes
+              </Text>
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -157,51 +192,51 @@ export default function StudyScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      
+
       <View style={styles.tabBar}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'notes' && styles.activeTab]} 
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'notes' && styles.activeTab]}
           onPress={() => setActiveTab('notes')}
         >
-          <Feather 
-            name="file-text" 
-            size={18} 
-            color={activeTab === 'notes' ? '#007AFF' : '#8E8E93'} 
+          <Feather
+            name="file-text"
+            size={18}
+            color={activeTab === 'notes' ? '#007AFF' : '#8E8E93'}
           />
           <Text style={[styles.tabText, activeTab === 'notes' && styles.activeTabText]}>
             Notes
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'highlights' && styles.activeTab]} 
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'highlights' && styles.activeTab]}
           onPress={() => setActiveTab('highlights')}
         >
-          <Feather 
-            name="bookmark" 
-            size={18} 
-            color={activeTab === 'highlights' ? '#007AFF' : '#8E8E93'} 
+          <Feather
+            name="bookmark"
+            size={18}
+            color={activeTab === 'highlights' ? '#007AFF' : '#8E8E93'}
           />
           <Text style={[styles.tabText, activeTab === 'highlights' && styles.activeTabText]}>
             Highlights
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'resources' && styles.activeTab]} 
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'resources' && styles.activeTab]}
           onPress={() => setActiveTab('resources')}
         >
-          <Feather 
-            name="book-open" 
-            size={18} 
-            color={activeTab === 'resources' ? '#007AFF' : '#8E8E93'} 
+          <Feather
+            name="book-open"
+            size={18}
+            color={activeTab === 'resources' ? '#007AFF' : '#8E8E93'}
           />
           <Text style={[styles.tabText, activeTab === 'resources' && styles.activeTabText]}>
             Resources
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.content}>
         {renderTabContent()}
       </View>
@@ -392,5 +427,16 @@ const styles = StyleSheet.create({
     color: '#C7C7CC',
     textAlign: 'center',
     marginTop: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#8E8E93',
   },
 });

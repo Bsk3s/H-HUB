@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
   ActivityIndicator,
   Alert,
   SafeAreaView,
@@ -13,6 +13,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
 import { getNotesByFolder, deleteNote } from '../../features/study/services/notesService';
+import { getAllJournals, getJournalsByPillar, deleteJournalEntry } from '../../services/journalService';
 import { showErrorAlert } from '../../src/utils/errorHandling';
 import { startMeasurement, endMeasurement, measureListPerformance } from '../../src/utils/performanceMonitor';
 import NoteItemSkeleton from '../../src/components/loading/NoteItemSkeleton';
@@ -23,6 +24,9 @@ export default function NotesScreen({ route, navigation }) {
   const [notes, setNotes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Check if this is an auto-tagged journal folder
+  const isJournalFolder = ['all', 'Faith', 'Hope', 'Prayer', 'Love'].includes(folderId);
 
   useEffect(() => {
     if (folderId) {
@@ -47,15 +51,42 @@ export default function NotesScreen({ route, navigation }) {
       setIsLoading(true);
       startMeasurement('loadNotes');
       console.log('📝 Loading notes for folder:', folderId);
-      const noteData = await getNotesByFolder(folderId);
-      
+
+      let noteData;
+
+      if (isJournalFolder) {
+        // Load journals from AsyncStorage
+        if (folderId === 'all') {
+          noteData = await getAllJournals();
+        } else {
+          noteData = await getJournalsByPillar(folderId);
+        }
+        // Convert journal format to note format for display
+        noteData = noteData.map(journal => ({
+          id: journal.id,
+          title: journal.title,
+          content: journal.content,
+          created_at: journal.createdAt,
+          updated_at: journal.updatedAt,
+          isJournal: true,
+          pillar: journal.pillar,
+          scripture: journal.scripture,
+          scriptureRef: journal.scriptureRef,
+          reflection: journal.reflection,
+          reflections: journal.reflections, // Pass reflections array
+        }));
+      } else {
+        // Load regular notes from Supabase
+        noteData = await getNotesByFolder(folderId);
+      }
+
       setNotes(noteData || []);
       measureListPerformance('NotesScreen', noteData?.length || 0);
-      console.log('✅ Loaded', noteData?.length || 0, 'notes for folder:', folderName);
-      endMeasurement('loadNotes', `${noteData?.length || 0} notes`);
+      console.log('✅ Loaded', noteData?.length || 0, isJournalFolder ? 'journals' : 'notes', 'for folder:', folderName);
+      endMeasurement('loadNotes', `${noteData?.length || 0} ${isJournalFolder ? 'journals' : 'notes'}`);
     } catch (error) {
       console.error('Error loading notes:', error);
-      showErrorAlert(error, 'Failed to Load Notes');
+      showErrorAlert(error, `Failed to Load ${isJournalFolder ? 'Journals' : 'Notes'}`);
       endMeasurement('loadNotes', 'failed');
     } finally {
       setIsLoading(false);
@@ -67,14 +98,43 @@ export default function NotesScreen({ route, navigation }) {
   };
 
   const handleAddNote = () => {
+    if (isJournalFolder) {
+      Alert.alert(
+        'Journal Folder',
+        'Journals are automatically created from Real Stuff cards. Go to Home and tap "Journal about this" on any card to create a new journal entry.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     console.log('📝 Adding new note to folder:', folderId);
-    navigation.navigate('NoteEditor', { 
+    navigation.navigate('NoteEditor', {
       folderId: folderId,
-      folderName: folderName 
+      folderName: folderName
     });
   };
 
   const handleEditNote = (note) => {
+    if (note.isJournal) {
+      // Navigate to beautiful journal detail screen
+      console.log('📖 Opening journal:', note.title);
+      navigation.navigate('JournalDetail', {
+        journal: {
+          id: note.id,
+          title: note.title,
+          content: note.content,
+          pillar: note.pillar,
+          scripture: note.scripture,
+          scriptureRef: note.scriptureRef,
+          reflection: note.reflection || '',
+          createdAt: note.created_at,
+          updatedAt: note.updated_at,
+          reflections: note.reflections, // Pass reflections array
+        }
+      });
+      return;
+    }
+
     console.log('✏️ Editing note:', note.title);
     navigation.navigate('NoteEditor', {
       noteId: note.id,
@@ -83,27 +143,33 @@ export default function NotesScreen({ route, navigation }) {
     });
   };
 
-  const handleDeleteNote = (noteId, noteTitle) => {
+  const handleDeleteNote = (noteId, noteTitle, isJournal) => {
     Alert.alert(
-      'Delete Note',
+      isJournal ? 'Delete Journal' : 'Delete Note',
       `Are you sure you want to delete "${noteTitle || 'Untitled Note'}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
               setIsLoading(true);
-              await deleteNote(noteId);
-              console.log('🗑️ Deleted note:', noteTitle);
-              
+
+              if (isJournal) {
+                await deleteJournalEntry(noteId);
+                console.log('🗑️ Deleted journal:', noteTitle);
+              } else {
+                await deleteNote(noteId);
+                console.log('🗑️ Deleted note:', noteTitle);
+              }
+
               // Remove from local state and refresh
               setNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
               await loadNotes();
             } catch (error) {
-              console.error('Error deleting note:', error);
-              showErrorAlert(error, 'Failed to Delete Note');
+              console.error('Error deleting:', error);
+              showErrorAlert(error, `Failed to Delete ${isJournal ? 'Journal' : 'Note'}`);
             } finally {
               setIsLoading(false);
             }
@@ -121,8 +187,8 @@ export default function NotesScreen({ route, navigation }) {
     };
     const content = typeof note.content === 'string' ? stripHtml(note.content) : '';
     const searchLower = searchQuery.toLowerCase();
-    return title.toLowerCase().includes(searchLower) || 
-           content.toLowerCase().includes(searchLower);
+    return title.toLowerCase().includes(searchLower) ||
+      content.toLowerCase().includes(searchLower);
   });
 
   const renderEmptyNotes = () => (
@@ -142,21 +208,21 @@ export default function NotesScreen({ route, navigation }) {
   const renderNoteItem = React.useCallback(({ item }) => {
     const title = item.title || 'Untitled Note';
     const date = new Date(item.updatedAt).toLocaleDateString();
-    
+
     const content = stripHtml(item.content);
     const preview = content.length > 100 ? content.substring(0, 100) + '...' : content;
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.noteItem}
         onPress={() => handleEditNote(item)}
       >
         <View style={styles.noteContent}>
           <View style={styles.noteHeader}>
             <Text style={styles.noteTitle} numberOfLines={1}>{title}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.deleteButton}
-              onPress={() => handleDeleteNote(item.id, title)}
+              onPress={() => handleDeleteNote(item.id, title, item.isJournal)}
             >
               <Feather name="trash-2" size={16} color="#FF3B30" />
             </TouchableOpacity>
@@ -181,7 +247,7 @@ export default function NotesScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
@@ -213,7 +279,7 @@ export default function NotesScreen({ route, navigation }) {
           ) : null}
         </View>
       </View>
-      
+
       {/* Notes List */}
       {isLoading ? (
         <NoteItemSkeleton count={8} />

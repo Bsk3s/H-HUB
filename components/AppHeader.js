@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Menu, LogOut, User, Settings, HelpCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../src/auth/context';
+import { useTheme } from '../src/hooks/useTheme';
 
 /**
  * AppHeader Component
@@ -12,6 +13,7 @@ import { useAuth } from '../src/auth/context';
  * Simple styling without external dependencies.
  */
 const AppHeader = ({ navigation }) => {
+    const { colors } = useTheme();
     const insets = useSafeAreaInsets();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -85,11 +87,11 @@ const AppHeader = ({ navigation }) => {
     return (
         <>
             {/* Main Header */}
-            <View style={[styles.header, { paddingTop: insets.top }]}>
+            <View style={[styles.header, { paddingTop: insets.top, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
                 <View style={styles.headerContent}>
-                    <Text style={styles.title}>Heavenly Hub</Text>
+                    <Text style={[styles.title, { color: colors.textPrimary }]}>Heavenly Hub</Text>
                     <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
-                        <Menu size={24} color="#374151" />
+                        <Menu size={24} color={colors.textPrimary} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -102,25 +104,25 @@ const AppHeader = ({ navigation }) => {
                 onRequestClose={() => setIsMenuOpen(false)}
             >
                 <Pressable
-                    style={styles.modalOverlay}
+                    style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}
                     onPress={() => setIsMenuOpen(false)}
                 >
                     <View style={styles.menuContainer}>
-                        <View style={styles.menuContent}>
+                        <View style={[styles.menuContent, { backgroundColor: colors.surface }]}>
                             {menuItems.map((item, index) => (
                                 <TouchableOpacity
                                     key={index}
                                     onPress={item.onPress}
                                     style={[
                                         styles.menuItem,
-                                        index !== menuItems.length - 1 && styles.menuItemBorder,
+                                        index !== menuItems.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
                                         item.destructive && styles.destructiveItem
                                     ]}
                                 >
-                                    <item.icon size={20} color={item.destructive ? "#ef4444" : "#374151"} />
+                                    <item.icon size={20} color={item.destructive ? colors.error : colors.textPrimary} />
                                     <Text style={[
                                         styles.menuItemText,
-                                        item.destructive && styles.destructiveText
+                                        { color: item.destructive ? colors.error : colors.textPrimary }
                                     ]}>
                                         {item.label}
                                     </Text>
@@ -136,11 +138,9 @@ const AppHeader = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     header: {
-        backgroundColor: '#ffffff',
         paddingHorizontal: 16,
         paddingBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
     },
     headerContent: {
         flexDirection: 'row',
@@ -150,14 +150,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: '600',
-        color: '#111827',
     },
     menuButton: {
         padding: 4,
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     menuContainer: {
         flex: 1,
@@ -167,7 +165,6 @@ const styles = StyleSheet.create({
         paddingRight: 16,
     },
     menuContent: {
-        backgroundColor: '#ffffff',
         borderRadius: 8,
         minWidth: 200,
         shadowColor: '#000',
@@ -185,21 +182,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
     },
-    menuItemBorder: {
-        borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
-    },
     menuItemText: {
         marginLeft: 12,
         fontSize: 16,
         fontWeight: '500',
-        color: '#374151',
     },
     destructiveItem: {
         // Could add special background color if needed
-    },
-    destructiveText: {
-        color: '#ef4444',
     },
 });
 

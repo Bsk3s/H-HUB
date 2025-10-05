@@ -6,12 +6,13 @@ import ErrorBoundary from '../../src/components/ErrorBoundary';
 import StudyHomeScreen from '../../screens/study/StudyHomeScreen';
 import NotesScreen from '../../screens/study/NotesScreen';
 import NoteEditorScreen from '../../screens/study/NoteEditorScreen';
+import JournalDetailScreen from '../../screens/journal/JournalDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
-export default function StudyNavigator() {
+export default function StudyNavigator({ journalToView, onJournalViewed }) {
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       screenName="Study"
       onRetry={() => {
         // Reset study navigation state
@@ -27,7 +28,13 @@ export default function StudyNavigator() {
       >
         <Stack.Screen
           name="StudyHome"
-          component={StudyHomeScreen}
+          children={(props) => (
+            <StudyHomeScreen
+              {...props}
+              journalToView={journalToView}
+              onJournalViewed={onJournalViewed}
+            />
+          )}
         />
         <Stack.Screen
           name="Notes"
@@ -40,6 +47,10 @@ export default function StudyNavigator() {
             presentation: 'fullScreenModal',
             gestureEnabled: true,
           }}
+        />
+        <Stack.Screen
+          name="JournalDetail"
+          component={JournalDetailScreen}
         />
       </Stack.Navigator>
     </ErrorBoundary>

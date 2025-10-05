@@ -29,7 +29,56 @@ export default function LandingScreen({ navigation }) {
 
   useEffect(() => {
     checkAuthStatus();
+    checkReturnToSignUp();
+    checkOnboardingProgress();
   }, [initializing, user]); // React to auth state changes
+
+  // Also check returnToSignUp flag whenever screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('👀 LandingScreen focused - checking returnToSignUp flag');
+      checkReturnToSignUp();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  const checkOnboardingProgress = async () => {
+    try {
+      // Only check progress if user is not authenticated
+      if (!user && !initializing) {
+        const progress = await AsyncStorage.getItem('onboardingProgress');
+        if (progress) {
+          const progressData = JSON.parse(progress);
+          if (!progressData.completed) {
+            console.log(`📝 Found saved onboarding progress: ${progressData.currentScreen} (${progressData.currentStep}/${progressData.totalSteps})`);
+            // Don't auto-navigate - let user press "Get Started" to resume
+            // The handleGetStarted function will resume from saved progress
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking onboarding progress:', error);
+    }
+  };
+
+  const checkReturnToSignUp = async () => {
+    try {
+      const shouldReturn = await AsyncStorage.getItem('returnToSignUp');
+      if (shouldReturn === 'true') {
+        console.log('🔄 Returning to onboarding after wrong email');
+        // Clear the flag
+        await AsyncStorage.removeItem('returnToSignUp');
+        // Navigate to Onboarding without specifying screen
+        // OnboardingNavigator will load SignUpScreen from saved progress
+        // and the stack will have all previous screens, so back button works
+        navigation.navigate('Onboarding');
+        console.log('📝 Navigated to Onboarding - will resume at SignUpScreen with full stack');
+      }
+    } catch (error) {
+      console.error('Error checking returnToSignUp flag:', error);
+    }
+  };
 
   const checkAuthStatus = async () => {
     try {
@@ -55,8 +104,28 @@ export default function LandingScreen({ navigation }) {
     }
   };
 
-  const handleGetStarted = () => {
-    console.log('🚀 Get Started pressed - navigating to onboarding');
+  const handleGetStarted = async () => {
+    console.log('🚀 Get Started pressed');
+
+    // Check if there's saved onboarding progress
+    try {
+      const progress = await AsyncStorage.getItem('onboardingProgress');
+      if (progress) {
+        const progressData = JSON.parse(progress);
+        if (!progressData.completed) {
+          console.log(`📝 Resuming onboarding from ${progressData.currentScreen}`);
+          navigation.navigate('Onboarding', {
+            screen: progressData.currentScreen
+          });
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error checking progress:', error);
+    }
+
+    // No saved progress, start from beginning
+    console.log('✨ Starting fresh onboarding');
     navigation.navigate('Onboarding');
   };
 

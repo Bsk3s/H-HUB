@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Tex
 import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
 import { getFolders, createFolder, deleteFolder, updateFolder } from '../../features/study/services/notesService';
+import { getJournalCountsByPillar } from '../../services/journalService';
 import { showErrorAlert } from '../../src/utils/errorHandling';
 import FolderItemSkeleton from '../../src/components/loading/FolderItemSkeleton';
 import EmptyFolders from '../../src/components/empty/EmptyFolders';
@@ -26,9 +27,12 @@ const FolderList = ({ navigation }) => {
   const loadFolders = async () => {
     try {
       setIsLoading(true);
+
+      // Load only regular manual folders from Supabase (no auto-tagged journals)
       const folderData = await getFolders();
+
       setFolders(folderData || []);
-      console.log('✅ Loaded', folderData?.length || 0, 'folders');
+      console.log('✅ Loaded', folderData?.length || 0, 'manual folders');
     } catch (error) {
       console.error('Error loading folders:', error);
       showErrorAlert(error, 'Failed to Load Folders');
@@ -37,7 +41,7 @@ const FolderList = ({ navigation }) => {
     }
   };
 
-  const filteredFolders = folders.filter(folder => 
+  const filteredFolders = folders.filter(folder =>
     folder.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -63,21 +67,21 @@ const FolderList = ({ navigation }) => {
     }
   };
 
-  const handleDeleteFolder = (folderId, folderName) => {
+  const handleDeleteFolder = (folder) => {
     Alert.alert(
       'Delete Folder',
-      `Are you sure you want to delete "${folderName}"? All notes in this folder will be permanently deleted.`,
+      `Are you sure you want to delete "${folder.name}"? All notes in this folder will be permanently deleted.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
               setIsLoading(true);
-              await deleteFolder(folderId);
-              console.log('🗑️ Deleted folder:', folderName);
-              showSuccess(`Folder "${folderName}" deleted!`);
+              await deleteFolder(folder.id);
+              console.log('🗑️ Deleted folder:', folder.name);
+              showSuccess(`Folder "${folder.name}" deleted!`);
               await loadFolders(); // Refresh the list
             } catch (error) {
               console.error('Error deleting folder:', error);
@@ -124,9 +128,9 @@ const FolderList = ({ navigation }) => {
 
   const handleFolderPress = (folder) => {
     console.log('🗂️ Opening folder:', folder.name);
-    navigation.navigate('Notes', { 
-      folderId: folder.id, 
-      folderName: folder.name 
+    navigation.navigate('Notes', {
+      folderId: folder.id,
+      folderName: folder.name
     });
   };
 
@@ -144,13 +148,13 @@ const FolderList = ({ navigation }) => {
               placeholderTextColor="#8E8E93"
             />
             <View style={styles.editActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.cancelEditButton}
                 onPress={handleCancelEditFolder}
               >
                 <Text style={styles.cancelEditButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.saveEditButton}
                 onPress={handleSaveEditFolder}
               >
@@ -163,7 +167,7 @@ const FolderList = ({ navigation }) => {
     }
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.folderItem}
         onPress={() => handleFolderPress(item)}
       >
@@ -175,15 +179,15 @@ const FolderList = ({ navigation }) => {
           <Text style={styles.noteCount}>{item.note_count || 0} notes</Text>
         </View>
         <View style={styles.folderActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editButton}
             onPress={() => handleEditFolder(item)}
           >
             <Feather name="edit-2" size={16} color="#007AFF" />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.deleteButton}
-            onPress={() => handleDeleteFolder(item.id, item.name)}
+            onPress={() => handleDeleteFolder(item)}
           >
             <Feather name="trash-2" size={16} color="#FF3B30" />
           </TouchableOpacity>
@@ -212,7 +216,7 @@ const FolderList = ({ navigation }) => {
       {/* Create New Folder Section */}
       <View style={styles.createSection}>
         {!isCreatingFolder ? (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.createButton}
             onPress={() => setIsCreatingFolder(true)}
           >
@@ -230,7 +234,7 @@ const FolderList = ({ navigation }) => {
               placeholderTextColor="#8E8E93"
             />
             <View style={styles.createActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => {
                   setIsCreatingFolder(false);
@@ -239,7 +243,7 @@ const FolderList = ({ navigation }) => {
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleCreateFolder}
               >
@@ -255,21 +259,21 @@ const FolderList = ({ navigation }) => {
         <FolderItemSkeleton count={6} />
       ) : (
         <>
-                        {/* Folders List */}
-              <FlatList
-                data={filteredFolders}
-                renderItem={renderFolder}
-                keyExtractor={(item) => `folder-${item.id}`}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContainer}
-                // 🚀 PERFORMANCE: Virtualization optimizations for folders
-                removeClippedSubviews={true}
-                maxToRenderPerBatch={8}
-                initialNumToRender={12}
-                windowSize={8}
-                updateCellsBatchingPeriod={100}
-                scrollEventThrottle={16}
-              />
+          {/* Folders List */}
+          <FlatList
+            data={filteredFolders}
+            renderItem={renderFolder}
+            keyExtractor={(item) => `folder-${item.id}`}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContainer}
+            // 🚀 PERFORMANCE: Virtualization optimizations for folders
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={8}
+            initialNumToRender={12}
+            windowSize={8}
+            updateCellsBatchingPeriod={100}
+            scrollEventThrottle={16}
+          />
 
           {/* Empty States */}
           {filteredFolders.length === 0 && searchQuery.length > 0 && (
@@ -291,14 +295,118 @@ const FolderList = ({ navigation }) => {
   );
 };
 
+// Journals List Component - Shows auto-tagged journal folders
+const JournalsList = ({ navigation }) => {
+  const [journalCounts, setJournalCounts] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadJournalCounts();
+  }, []);
+
+  const loadJournalCounts = async () => {
+    setIsLoading(true);
+    const counts = await getJournalCountsByPillar();
+    setJournalCounts(counts);
+    setIsLoading(false);
+  };
+
+  // Auto-tagged folders (only show if they have journals)
+  const journalFolders = [
+    { id: 'Faith', name: 'Faith', noteCount: journalCounts.Faith || 0, emoji: '✝️' },
+    { id: 'Hope', name: 'Hope', noteCount: journalCounts.Hope || 0, emoji: '💙' },
+    { id: 'Prayer', name: 'Prayer', noteCount: journalCounts.Prayer || 0, emoji: '🙏' },
+    { id: 'Love', name: 'Love', noteCount: journalCounts.Love || 0, emoji: '❤️' },
+  ].filter(folder => folder.noteCount > 0);
+
+  const totalJournals = Object.values(journalCounts).reduce((a, b) => a + b, 0);
+
+  const allFolders = [
+    ...(totalJournals > 0 ? [{ id: 'all', name: 'All Journals', noteCount: totalJournals, emoji: '📝' }] : []),
+    ...journalFolders,
+  ];
+
+  const handleFolderPress = (folder) => {
+    navigation.navigate('Notes', {
+      folderId: folder.id,
+      folderName: folder.name
+    });
+  };
+
+  const renderFolder = ({ item }) => (
+    <TouchableOpacity
+      style={styles.folderItem}
+      onPress={() => handleFolderPress(item)}
+    >
+      <View style={styles.folderInfo}>
+        <View style={styles.folderHeader}>
+          <Text style={styles.folderEmoji}>{item.emoji}</Text>
+          <Text style={styles.folderName}>{item.name}</Text>
+        </View>
+        <Text style={styles.noteCount}>{item.noteCount} journals</Text>
+      </View>
+      <Feather name="chevron-right" size={18} color="#C7C7CC" />
+    </TouchableOpacity>
+  );
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (allFolders.length === 0) {
+    return (
+      <View style={styles.comingSoonContainer}>
+        <Text style={styles.folderEmoji}>✍️</Text>
+        <Text style={styles.comingSoonText}>No Journals Yet</Text>
+        <Text style={styles.comingSoonSubtext}>
+          Journal about Real Stuff cards from the Home tab to create your first entry
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={allFolders}
+        renderItem={renderFolder}
+        keyExtractor={(item) => `journal-${item.id}`}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContainer}
+      />
+    </View>
+  );
+};
+
 // Main StudyHomeScreen Component
-export default function StudyHomeScreen({ navigation }) {
+export default function StudyHomeScreen({ navigation, journalToView, onJournalViewed }) {
   const [activeTab, setActiveTab] = useState('notes');
+
+  // Auto-navigate to journal detail when journalToView is set
+  useEffect(() => {
+    if (journalToView && navigation) {
+      console.log('📖 Auto-navigating to journal detail:', journalToView.title);
+      // Navigate to journal detail screen
+      navigation.navigate('JournalDetail', {
+        journal: journalToView
+      });
+      // Clear the journalToView state
+      if (onJournalViewed) {
+        onJournalViewed();
+      }
+    }
+  }, [journalToView, navigation, onJournalViewed]);
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'notes':
         return <FolderList navigation={navigation} />;
+      case 'journals':
+        return <JournalsList navigation={navigation} />;
       case 'highlights':
         return (
           <View style={styles.comingSoonContainer}>
@@ -327,51 +435,65 @@ export default function StudyHomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      
+
       <View style={styles.tabBar}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'notes' && styles.activeTab]} 
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'notes' && styles.activeTab]}
           onPress={() => setActiveTab('notes')}
         >
-          <Feather 
-            name="file-text" 
-            size={18} 
-            color={activeTab === 'notes' ? '#007AFF' : '#8E8E93'} 
+          <Feather
+            name="file-text"
+            size={18}
+            color={activeTab === 'notes' ? '#007AFF' : '#8E8E93'}
           />
           <Text style={[styles.tabText, activeTab === 'notes' && styles.activeTabText]}>
             Notes
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'highlights' && styles.activeTab]} 
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'journals' && styles.activeTab]}
+          onPress={() => setActiveTab('journals')}
+        >
+          <Feather
+            name="edit-3"
+            size={18}
+            color={activeTab === 'journals' ? '#007AFF' : '#8E8E93'}
+          />
+          <Text style={[styles.tabText, activeTab === 'journals' && styles.activeTabText]}>
+            Journals
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'highlights' && styles.activeTab]}
           onPress={() => setActiveTab('highlights')}
         >
-          <Feather 
-            name="bookmark" 
-            size={18} 
-            color={activeTab === 'highlights' ? '#007AFF' : '#8E8E93'} 
+          <Feather
+            name="bookmark"
+            size={18}
+            color={activeTab === 'highlights' ? '#007AFF' : '#8E8E93'}
           />
           <Text style={[styles.tabText, activeTab === 'highlights' && styles.activeTabText]}>
             Highlights
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'resources' && styles.activeTab]} 
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'resources' && styles.activeTab]}
           onPress={() => setActiveTab('resources')}
         >
-          <Feather 
-            name="book-open" 
-            size={18} 
-            color={activeTab === 'resources' ? '#007AFF' : '#8E8E93'} 
+          <Feather
+            name="book-open"
+            size={18}
+            color={activeTab === 'resources' ? '#007AFF' : '#8E8E93'}
           />
           <Text style={[styles.tabText, activeTab === 'resources' && styles.activeTabText]}>
             Resources
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.content}>
         {renderTabContent()}
       </View>

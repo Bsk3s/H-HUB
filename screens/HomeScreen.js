@@ -28,12 +28,22 @@ import { useLiveKitVoiceChat } from '../app/hooks/useLiveKitVoiceChat';
 // Import data
 import { realStuffCards, thisCantBeJustMe } from '../data/homeData';
 
+// Import services
+import { saveJournalEntry } from '../services/journalService';
+
+// Import theme
+import { useTheme } from '../src/hooks/useTheme';
+
 export default function HomeScreen({ navigation }) {
+  const { colors } = useTheme();
   const [selectedActivityType, setSelectedActivityType] = useState(null);
   const [showDailyProgress, setShowDailyProgress] = useState(false);
   const [selectedRealStuffCard, setSelectedRealStuffCard] = useState(null);
   const [showRealStuffModal, setShowRealStuffModal] = useState(false);
   const [activeTab, setActiveTab] = useState('Home');
+  const [bibleScriptureRef, setBibleScriptureRef] = useState(null);
+  const [studyRefreshKey, setStudyRefreshKey] = useState(0);
+  const [journalToView, setJournalToView] = useState(null);
 
   const {
     activities,
@@ -50,7 +60,7 @@ export default function HomeScreen({ navigation }) {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <StatusBar style="dark" />
         <AppHeader navigation={navigation} />
         <TopTabBar
@@ -65,14 +75,14 @@ export default function HomeScreen({ navigation }) {
         >
           {/* Daily Verse Skeleton */}
           <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 20 }}>
-            <View style={{ backgroundColor: '#F8F9FA', borderRadius: 12, padding: 20 }}>
+            <View style={{ backgroundColor: colors.backgroundSecondary, borderRadius: 12, padding: 20 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <View style={{ width: 20, height: 20, backgroundColor: '#E5E7EB', borderRadius: 10, marginRight: 8 }} />
-                <View style={{ width: 60, height: 16, backgroundColor: '#E5E7EB', borderRadius: 4 }} />
+                <View style={{ width: 20, height: 20, backgroundColor: colors.border, borderRadius: 10, marginRight: 8 }} />
+                <View style={{ width: 60, height: 16, backgroundColor: colors.border, borderRadius: 4 }} />
               </View>
-              <View style={{ width: '100%', height: 16, backgroundColor: '#E5E7EB', borderRadius: 4, marginBottom: 8 }} />
-              <View style={{ width: '85%', height: 16, backgroundColor: '#E5E7EB', borderRadius: 4, marginBottom: 12 }} />
-              <View style={{ width: '40%', height: 14, backgroundColor: '#E5E7EB', borderRadius: 4 }} />
+              <View style={{ width: '100%', height: 16, backgroundColor: colors.border, borderRadius: 4, marginBottom: 8 }} />
+              <View style={{ width: '85%', height: 16, backgroundColor: colors.border, borderRadius: 4, marginBottom: 12 }} />
+              <View style={{ width: '40%', height: 14, backgroundColor: colors.border, borderRadius: 4 }} />
             </View>
           </View>
 
@@ -81,13 +91,13 @@ export default function HomeScreen({ navigation }) {
 
           {/* Real Stuff Section Skeleton */}
           <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
-            <View style={{ width: '50%', height: 20, backgroundColor: '#E5E7EB', borderRadius: 4, marginBottom: 16 }} />
+            <View style={{ width: '50%', height: 20, backgroundColor: colors.border, borderRadius: 4, marginBottom: 16 }} />
             <View style={{ flexDirection: 'row', gap: 16 }}>
               {[1, 2].map((index) => (
-                <View key={index} style={{ flex: 1, backgroundColor: '#F8F9FA', borderRadius: 12, padding: 16 }}>
-                  <View style={{ width: '100%', height: 100, backgroundColor: '#E5E7EB', borderRadius: 8, marginBottom: 12 }} />
-                  <View style={{ width: '80%', height: 16, backgroundColor: '#E5E7EB', borderRadius: 4, marginBottom: 8 }} />
-                  <View style={{ width: '60%', height: 14, backgroundColor: '#E5E7EB', borderRadius: 4 }} />
+                <View key={index} style={{ flex: 1, backgroundColor: colors.backgroundSecondary, borderRadius: 12, padding: 16 }}>
+                  <View style={{ width: '100%', height: 100, backgroundColor: colors.border, borderRadius: 8, marginBottom: 12 }} />
+                  <View style={{ width: '80%', height: 16, backgroundColor: colors.border, borderRadius: 4, marginBottom: 8 }} />
+                  <View style={{ width: '60%', height: 14, backgroundColor: colors.border, borderRadius: 4 }} />
                 </View>
               ))}
             </View>
@@ -100,21 +110,21 @@ export default function HomeScreen({ navigation }) {
   // Handle error state
   if (error) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <StatusBar style="dark" />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
           <Text style={{ fontSize: 64, marginBottom: 16 }}>😔</Text>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937', textAlign: 'center', marginBottom: 8 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textPrimary, textAlign: 'center', marginBottom: 8 }}>
             Something went wrong
           </Text>
-          <Text style={{ fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 24 }}>
+          <Text style={{ fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginBottom: 24 }}>
             We couldn't load your activities. Please try again.
           </Text>
           <TouchableOpacity
-            style={{ backgroundColor: '#007AFF', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 }}
+            style={{ backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 }}
             onPress={() => window.location.reload()}
           >
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Try Again</Text>
+            <Text style={{ color: colors.textInverse, fontSize: 16, fontWeight: '600' }}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -124,7 +134,7 @@ export default function HomeScreen({ navigation }) {
   // Handle empty activities state
   if (!isLoading && (!activities || activities.length === 0)) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <StatusBar style="dark" />
         <EmptyActivities
           onSetupActivities={() => {
@@ -145,7 +155,44 @@ export default function HomeScreen({ navigation }) {
     setShowRealStuffModal(true);
   };
 
+  const handleNavigateToBible = (scriptureRef) => {
+    console.log('📖 Navigating to Bible with scripture:', scriptureRef);
+    // Close the modal
+    setShowRealStuffModal(false);
+    setSelectedRealStuffCard(null);
+    // Switch to Bible tab
+    setActiveTab('Bible');
+    // Set the scripture reference to navigate to
+    setBibleScriptureRef(scriptureRef);
 
+    // Clear the scripture reference after a delay to allow Bible navigation to complete
+    setTimeout(() => {
+      setBibleScriptureRef(null);
+    }, 2000);
+  };
+
+  const handleViewJournal = (journal) => {
+    console.log('📖 Viewing journal from HomeScreen:', journal.title);
+    // Close the modal
+    setShowRealStuffModal(false);
+    setSelectedRealStuffCard(null);
+    // Switch to Study tab
+    setActiveTab('Study');
+    // Set the journal to navigate to
+    setJournalToView(journal);
+  };
+
+  const handleSaveJournal = async (journalEntry, isNewReflection = false) => {
+    console.log('💾 Saving journal entry from HomeScreen', isNewReflection ? '(new reflection)' : '(new journal)');
+    const result = await saveJournalEntry(journalEntry, isNewReflection);
+    if (result.success) {
+      console.log('✅ Journal saved successfully');
+      // Trigger Study screen refresh
+      setStudyRefreshKey(prev => prev + 1);
+    } else {
+      console.error('❌ Failed to save journal:', result.error);
+    }
+  };
 
   const handleCloseRealStuffModal = () => {
     setShowRealStuffModal(false);
@@ -209,7 +256,7 @@ export default function HomeScreen({ navigation }) {
         console.log('🔄 Retrying HomeScreen...');
       }}
     >
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <StatusBar style="dark" />
         <AppHeader navigation={navigation} />
         <TopTabBar
@@ -276,11 +323,18 @@ export default function HomeScreen({ navigation }) {
 
         {/* Full-screen components */}
         {activeTab === 'Bible' && (
-          <BibleScreen navigation={navigation} />
+          <BibleScreen
+            navigation={navigation}
+            route={{ params: { scriptureRef: bibleScriptureRef } }}
+          />
         )}
 
         {activeTab === 'Study' && (
-          <StudyNavigator />
+          <StudyNavigator
+            key={studyRefreshKey}
+            journalToView={journalToView}
+            onJournalViewed={() => setJournalToView(null)}
+          />
         )}
 
         {activeTab === 'Chat' && (
@@ -305,7 +359,9 @@ export default function HomeScreen({ navigation }) {
           card={selectedRealStuffCard}
           isVisible={showRealStuffModal}
           onClose={handleCloseRealStuffModal}
-          navigation={navigation}
+          onNavigateToBible={handleNavigateToBible}
+          onSaveJournal={handleSaveJournal}
+          onViewJournal={handleViewJournal}
           onShare={() => { }}
           onSave={() => { }}
           onCTA={() => { }}

@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Heart } from 'lucide-react-native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import { useTheme } from '../../src/hooks/useTheme';
 
 /*
  * Daily Verse Component
@@ -27,6 +28,7 @@ import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import dailyVerseService from '../../src/services/dailyVerseService';
 
 const DailyVerse = () => {
+  const { colors } = useTheme();
   const [liked, setLiked] = useState(false);
   const [verse, setVerse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ const DailyVerse = () => {
       try {
         const v = await AsyncStorage.getItem(storageKey);
         if (v === '1') setLiked(true);
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -71,21 +73,21 @@ const DailyVerse = () => {
       const next = !liked;
       setLiked(next);
       await AsyncStorage.setItem(storageKey, next ? '1' : '0');
-    } catch {}
+    } catch { }
   };
 
   // Split verse body and reference if formatted like: "..." - Ref
   const { bodyText, referenceText } = useMemo(() => {
     if (!verse) return { bodyText: '', referenceText: '' };
-    
+
     // Use the verse text and reference from the daily verse service
     const verseText = verse.text;
     const verseRef = verse.verse;
     const version = verse.version || 'NKJV';
-    
-    return { 
-      bodyText: `"${verseText}"`, 
-      referenceText: `${verseRef} ${version}` 
+
+    return {
+      bodyText: `"${verseText}"`,
+      referenceText: `${verseRef} ${version}`
     };
   }, [verse]);
 
@@ -96,16 +98,16 @@ const DailyVerse = () => {
         paddingTop: 18,
         paddingBottom: 28,
         paddingHorizontal: 22,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: colors.backgroundSecondary,
         borderRadius: 20,
-        shadowColor: '#000',
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.07,
         shadowRadius: 8,
         elevation: 3,
       }}>
-        <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 8, letterSpacing: 0.7 }}>DAILY VERSE</Text>
-        <Text style={{ fontSize: 18, color: '#9CA3AF' }}>Loading today's verse...</Text>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 8, letterSpacing: 0.7 }}>DAILY VERSE</Text>
+        <Text style={{ fontSize: 18, color: colors.textTertiary }}>Loading today's verse...</Text>
       </View>
     );
   }
@@ -122,11 +124,11 @@ const DailyVerse = () => {
         paddingTop: 18,
         paddingBottom: 28,
         paddingHorizontal: 22,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: colors.backgroundSecondary,
         borderRadius: 20,
         position: 'relative',
         // content-driven height
-        shadowColor: '#000',
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.07,
         shadowRadius: 8,
@@ -140,8 +142,8 @@ const DailyVerse = () => {
         <Svg width="100%" height="100%">
           <Defs>
             <RadialGradient id="verseGlow" cx="30%" cy="35%" rx="60%" ry="50%">
-              <Stop offset="0%" stopColor="#ffffff" stopOpacity="0.03" />
-              <Stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+              <Stop offset="0%" stopColor={colors.textPrimary} stopOpacity="0.03" />
+              <Stop offset="100%" stopColor={colors.textPrimary} stopOpacity="0" />
             </RadialGradient>
           </Defs>
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#verseGlow)" />
@@ -150,21 +152,21 @@ const DailyVerse = () => {
 
 
 
-      <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', marginBottom: 8, letterSpacing: 0.7 }}>DAILY VERSE</Text>
-      <Text style={{ fontSize: quoteFontSize, color: '#111827', lineHeight: quoteLineHeight }}>{bodyText}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 8, letterSpacing: 0.7 }}>DAILY VERSE</Text>
+      <Text style={{ fontSize: quoteFontSize, color: colors.textPrimary, lineHeight: quoteLineHeight }}>{bodyText}</Text>
       {!!referenceText && (
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-          <Text style={{ fontSize: 14, color: '#6B7280' }}>— {referenceText.split(' ')[0]} {referenceText.split(' ')[1]}</Text>
+          <Text style={{ fontSize: 14, color: colors.textSecondary }}>— {referenceText.split(' ')[0]} {referenceText.split(' ')[1]}</Text>
           <View
             style={{
               marginLeft: 8,
               paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 999,
-              backgroundColor: '#F1F5F9',
+              backgroundColor: colors.backgroundTertiary,
             }}
           >
-            <Text style={{ fontSize: 12, color: '#475569', fontWeight: '600' }}>{referenceText.split(' ')[2] || 'NKJV'}</Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '600' }}>{referenceText.split(' ')[2] || 'NKJV'}</Text>
           </View>
         </View>
       )}
@@ -183,8 +185,8 @@ const DailyVerse = () => {
       >
         <Heart
           size={24}
-          color={liked ? '#DC2626' : '#9CA3AF'}
-          fill={liked ? '#DC2626' : 'transparent'}
+          color={liked ? colors.error : colors.textTertiary}
+          fill={liked ? colors.error : 'transparent'}
           strokeWidth={2}
         />
       </TouchableOpacity>

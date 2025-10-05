@@ -2,8 +2,10 @@ import React from 'react';
 import { View, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { useTheme } from '../../src/hooks/useTheme';
 
 function TopTabBar({ activeTab, onTabChange, voiceChatActive = false }) {
+  const { colors } = useTheme();
   const { width } = useWindowDimensions();
 
   const tabs = [
@@ -31,7 +33,7 @@ function TopTabBar({ activeTab, onTabChange, voiceChatActive = false }) {
   return (
     <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
       <View style={{
-        backgroundColor: '#F3F4F6',
+        backgroundColor: colors.backgroundSecondary,
         borderRadius: 9999, // Full rounded like HB1
         height: 45,
         flexDirection: 'row',
@@ -46,7 +48,7 @@ function TopTabBar({ activeTab, onTabChange, voiceChatActive = false }) {
               height: 36,
               top: 4.5,
               borderRadius: 9999, // Full rounded
-              backgroundColor: 'white'
+              backgroundColor: colors.surface
             },
             indicatorStyle,
           ]}
@@ -67,7 +69,7 @@ function TopTabBar({ activeTab, onTabChange, voiceChatActive = false }) {
                 style={{
                   fontSize: 16,
                   fontWeight: '500',
-                  color: activeTab === tab.id ? '#000000' : '#6B7280'
+                  color: activeTab === tab.id ? colors.textPrimary : colors.textSecondary
                 }}
               >
                 {tab.label}
@@ -79,7 +81,7 @@ function TopTabBar({ activeTab, onTabChange, voiceChatActive = false }) {
                     width: 8,
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: '#10B981',
+                    backgroundColor: colors.success,
                     marginLeft: 6,
                   }}
                 />

@@ -19,23 +19,21 @@ const Toast = ({
   const translateY = useRef(new Animated.Value(position === 'top' ? -100 : 100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
-  const hideToast = useMemo(() => {
-    return () => {
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: position === 'top' ? -100 : 100,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        if (onHide) onHide();
-      });
-    };
+  const hideToast = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: position === 'top' ? -100 : 100,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      if (onHide) onHide();
+    });
   }, [translateY, opacity, position, onHide]);
 
   useEffect(() => {

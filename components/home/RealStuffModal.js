@@ -1,23 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Modal, 
-  ScrollView, 
-  Dimensions, 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  Dimensions,
   Animated,
   StatusBar,
-  StyleSheet
+  StyleSheet,
+  Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Heart, MessageCircle, Star, BookOpen, Edit3 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import PrayerModal from './PrayerModal';
+import JournalEditor from '../journal/JournalEditor';
+import { getJournalByCardId } from '../../services/journalService';
 
 const { height, width } = Dimensions.get('window');
 
-const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navigation }) => {
+const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, onNavigateToBible, onSaveJournal, onViewJournal }) => {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const backgroundOpacityAnim = useRef(new Animated.Value(0)).current;
@@ -55,7 +58,7 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
 
   const handleClose = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     // Cinematic exit
     Animated.parallel([
       Animated.spring(scaleAnim, {
@@ -82,7 +85,10 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
   // Declare ALL state hooks BEFORE any early returns
   const [pressedAction, setPressedAction] = useState(null);
   const [showPrayerModal, setShowPrayerModal] = useState(false);
+  const [showJournalEditor, setShowJournalEditor] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isNewReflection, setIsNewReflection] = useState(false);
+  const [existingJournal, setExistingJournal] = useState(null);
 
   if (!card) return null;
 
@@ -106,7 +112,7 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
     if (card.emoji) {
       return card.emoji;
     }
-    
+
     // Handle Real Stuff cards (which have pillar property)
     switch (card.pillar) {
       case 'Faith':
@@ -126,18 +132,17 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
     // Visual feedback
     setPressedAction(action);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     console.log('Action pressed:', action);
-    
+
     if (action.includes('Read the full passage')) {
       // Navigate to Bible with specific verse/passage
       console.log('Navigate to Bible:', card.scriptureRef);
-      if (navigation && card.scriptureRef) {
+      if (onNavigateToBible && card.scriptureRef) {
         setIsNavigating(true);
         // Brief delay for visual feedback, then navigate
         setTimeout(() => {
-          onClose();
-          navigation.navigate('Bible', { scriptureRef: card.scriptureRef });
+          onNavigateToBible(card.scriptureRef);
           setIsNavigating(false);
         }, 300);
       }
@@ -146,33 +151,63 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
       console.log('Start guided prayer with:', card.scripture);
       setShowPrayerModal(true);
     } else if (action.includes('Journal about this')) {
-      // Open Study/Notes section for journaling
-      console.log('Open journal for:', card.title);
-      if (navigation) {
-        // Close modal first
-        onClose();
-        // Navigate to Study screen with pre-filled context
-        navigation.navigate('Study', { 
-          prefilledContent: {
-            title: card.title,
-            scripture: card.scripture,
-            scriptureRef: card.scriptureRef,
-            reflection: card.reflection
-          }
+      // Check if journal already exists for this card
+      console.log('Checking for existing journal for card:', card.id);
+      const existing = await getJournalByCardId(card.id);
+
+      if (existing) {
+        // Journal exists - show options
+        const reflectionCount = existing.reflections?.length || 1;
+        const lastDate = new Date(existing.updatedAt).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
         });
+
+        Alert.alert(
+          'Journal Exists',
+          `You journaled about this ${lastDate}${reflectionCount > 1 ? ` (${reflectionCount} reflections)` : ''}.\n\nWhat would you like to do?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'View Journal',
+              onPress: () => {
+                console.log('📖 View Journal pressed:', existing.id);
+                if (onViewJournal) {
+                  onViewJournal(existing);
+                }
+              }
+            },
+            {
+              text: 'Add Reflection',
+              onPress: () => {
+                setExistingJournal(existing);
+                setIsNewReflection(true);
+                setShowJournalEditor(true);
+              }
+            }
+          ]
+        );
+      } else {
+        // No existing journal - open fresh editor
+        console.log('Open journal for:', card.title);
+        setIsNewReflection(false);
+        setExistingJournal(null);
+        setShowJournalEditor(true);
       }
     }
   };
 
-  const getActionIcon = (action) => {
+  const getActionIcon = (action, isPrimary = false) => {
+    const iconColor = isPrimary ? 'white' : '#6b7280';
+
     if (action.includes('Read the full passage')) {
-      return <BookOpen size={18} color="#6b7280" />;
+      return <BookOpen size={18} color={iconColor} />;
     } else if (action.includes('Pray this verse')) {
-      return <Heart size={18} color="#6b7280" />;
+      return <Heart size={18} color={iconColor} />;
     } else if (action.includes('Journal about this')) {
-      return <Edit3 size={18} color="#6b7280" />;
+      return <Edit3 size={18} color={iconColor} />;
     } else {
-      return <Star size={18} color="#6b7280" />;
+      return <Star size={18} color={iconColor} />;
     }
   };
 
@@ -186,9 +221,9 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
       statusBarTranslucent
     >
       <StatusBar barStyle="light-content" />
-      
+
       {/* Cinematic Background Blur */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.backdrop,
           {
@@ -196,7 +231,7 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
           }
         ]}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backdropTouchable}
           activeOpacity={1}
           onPress={handleClose}
@@ -204,7 +239,7 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
       </Animated.View>
 
       {/* Cinematic Content */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.modalContainer,
           {
@@ -227,15 +262,15 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
                 {card.pillar?.toUpperCase() || 'STORY'}
               </Text>
             </View>
-            
-            <TouchableOpacity 
-              onPress={handleClose} 
+
+            <TouchableOpacity
+              onPress={handleClose}
               style={styles.closeButton}
             >
               <X size={20} color="white" />
             </TouchableOpacity>
           </View>
-          
+
           {/* Title Section */}
           <View style={styles.titleSection}>
             <Text style={styles.title}>
@@ -248,7 +283,7 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
         </LinearGradient>
 
         {/* Content */}
-        <ScrollView 
+        <ScrollView
           style={styles.contentScroll}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
@@ -284,18 +319,18 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
               <Text style={styles.sectionLabel}>TAKE ACTION</Text>
               <View style={styles.actionButtons}>
                 {card.actions.map((action, index) => (
-                                  <TouchableOpacity
-                  key={index}
-                  onPress={() => handleAction(action)}
-                  style={[
-                    styles.actionButton,
-                    index === 0 && styles.primaryActionButton,
-                    pressedAction === action && styles.pressedActionButton,
-                    isNavigating && action.includes('Read the full passage') && styles.navigatingButton
-                  ]}
-                >
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => handleAction(action)}
+                    style={[
+                      styles.actionButton,
+                      index === 0 && styles.primaryActionButton,
+                      pressedAction === action && styles.pressedActionButton,
+                      isNavigating && action.includes('Read the full passage') && styles.navigatingButton
+                    ]}
+                  >
                     <View style={styles.actionButtonContent}>
-                      {getActionIcon(action)}
+                      {getActionIcon(action, index === 0)}
                       <Text style={[
                         styles.actionButtonText,
                         index === 0 && styles.primaryActionButtonText
@@ -326,6 +361,16 @@ const RealStuffModal = ({ card, isVisible, onClose, onSave, onShare, onCTA, navi
         card={card}
         isVisible={showPrayerModal}
         onClose={() => setShowPrayerModal(false)}
+      />
+
+      {/* Journal Editor */}
+      <JournalEditor
+        isVisible={showJournalEditor}
+        onClose={() => setShowJournalEditor(false)}
+        onSave={onSaveJournal}
+        cardData={card}
+        isNewReflection={isNewReflection}
+        existingJournal={existingJournal}
       />
     </Modal>
   );

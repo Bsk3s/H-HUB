@@ -20,7 +20,7 @@ export const fetchUserActivities = async (userId) => {
     console.error("Fetch aborted: No user ID provided.");
     return [];
   }
-  
+
   const { data, error } = await supabase
     .from('user_activities')
     .select('*')
@@ -30,7 +30,7 @@ export const fetchUserActivities = async (userId) => {
     console.error('Error fetching user activities:', error);
     throw error;
   }
-  
+
   return data;
 };
 
@@ -38,22 +38,22 @@ export const fetchUserActivities = async (userId) => {
  * Fetches all of a user's individual progress logs within a date range.
  */
 export const fetchActivityLogs = async (userId) => {
-    if (!userId) {
-        console.error("Fetch aborted: No user ID provided.");
-        return [];
-    }
+  if (!userId) {
+    console.error("Fetch aborted: No user ID provided.");
+    return [];
+  }
 
-    const { data, error } = await supabase
-        .from('activity_logs')
-        .select('*')
-        .eq('user_id', userId);
+  const { data, error } = await supabase
+    .from('activity_logs')
+    .select('*')
+    .eq('user_id', userId);
 
-    if (error) {
-        console.error('Error fetching activity logs:', error);
-        throw error;
-    }
+  if (error) {
+    console.error('Error fetching activity logs:', error);
+    throw error;
+  }
 
-    return data;
+  return data;
 };
 
 
@@ -66,7 +66,7 @@ export const ensureActivitiesExist = async (userId, existingActivities) => {
     console.error("User ID is required to ensure activities exist.");
     return;
   }
-  
+
   const existingTypes = existingActivities.map(a => a.type);
   const missingTypes = Object.keys(ACTIVITY_DEFINITIONS).filter(
     type => !existingTypes.includes(type)
@@ -84,6 +84,11 @@ export const ensureActivitiesExist = async (userId, existingActivities) => {
       .insert(activitiesToCreate);
 
     if (error) {
+      // Ignore duplicate key errors (code 23505) - activities already exist
+      if (error.code === '23505') {
+        console.log('✓ Activities already exist for user, skipping creation');
+        return;
+      }
       console.error('Error ensuring activities exist:', error);
       throw error;
     }
@@ -99,7 +104,7 @@ export const upsertUserActivity = async (activityData) => {
     .from('user_activities')
     .update(activityData)
     .eq('id', activityData.id);
-    
+
   if (error) {
     console.error('Error upserting user activity:', error);
     throw error;
@@ -153,7 +158,7 @@ export const fetchDailyProgress = async (userId, activityType, date = null) => {
 
     // Fallback to activity_logs table (sum up individual entries)
     console.log('Using activity_logs fallback for fetchDailyProgress');
-    
+
     // First, get the user's activities to find the activity ID
     const { data: activities, error: activitiesError } = await supabase
       .from('user_activities')
@@ -225,7 +230,7 @@ export const setDailyProgress = async (userId, activityType, totalProgress, date
 
     // Fallback to activity_logs table
     console.log('Using activity_logs fallback for setDailyProgress');
-    
+
     // Get the user's activity ID
     const { data: activities, error: activitiesError } = await supabase
       .from('user_activities')
@@ -295,7 +300,7 @@ export const fetchDailyProgressRange = async (userId, startDate, endDate) => {
 
     // Fallback to activity_logs table
     console.log('Using activity_logs fallback for fetchDailyProgressRange');
-    
+
     // Get all user activities
     const { data: activities, error: activitiesError } = await supabase
       .from('user_activities')
@@ -323,15 +328,15 @@ export const fetchDailyProgressRange = async (userId, startDate, endDate) => {
 
     // Group logs by date and activity type, then sum them up
     const dailyProgressMap = {};
-    
+
     logs?.forEach(log => {
       const activity = activities.find(a => a.id === log.user_activity_id);
       if (!activity) return;
-      
+
       // Extract date from created_at
       const logDate = log.created_at.split('T')[0];
       const key = `${logDate}-${activity.type}`;
-      
+
       if (!dailyProgressMap[key]) {
         dailyProgressMap[key] = {
           user_id: userId,
@@ -340,7 +345,7 @@ export const fetchDailyProgressRange = async (userId, startDate, endDate) => {
           total_progress: 0
         };
       }
-      
+
       dailyProgressMap[key].total_progress += log.progress || 0;
     });
 
