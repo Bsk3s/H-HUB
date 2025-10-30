@@ -1262,6 +1262,23 @@ export default function OnboardingNavigator({ parentNavigation, initialRoute }) 
 
   console.log('🎯 OnboardingNavigator initialRoute:', initialRoute || 'DenominationScreen');
 
+  // Helper function for back navigation that checks if we can go back
+  const getBackHandler = (navigation, screenName, screenNumber) => {
+    return () => {
+      // Check if we can go back within the onboarding stack
+      if (navigation.canGoBack()) {
+        console.log(`🔙 Going back from ${screenName}`);
+        navigation.goBack();
+      } else {
+        // Can't go back (probably resumed from middle), go to Landing
+        console.log(`🔙 No previous screen in stack from ${screenName}, going to Landing`);
+        if (parentNavigation) {
+          parentNavigation.navigate('Landing');
+        }
+      }
+    };
+  };
+
   useEffect(() => {
     // If no initial route passed, check AsyncStorage for saved progress
     if (!initialRoute) {
@@ -1291,40 +1308,32 @@ export default function OnboardingNavigator({ parentNavigation, initialRoute }) 
         initialRouteName={initialRouteName}
       >
         <Stack.Screen name="DenominationScreen">
-          {(props) => <DenominationScreen {...props} parentNavigation={parentNavigation} />}
+          {(props) => <DenominationScreen {...props} parentNavigation={parentNavigation} getBackHandler={getBackHandler} />}
         </Stack.Screen>
-        <Stack.Screen
-          name="AgeScreen"
-          component={AgeScreen}
-        />
-        <Stack.Screen
-          name="BibleVersionScreen"
-          component={BibleVersionScreen}
-        />
-        <Stack.Screen
-          name="SpiritualJourneyScreen"
-          component={SpiritualJourneyScreen}
-        />
-        <Stack.Screen
-          name="FaithChallengesScreen"
-          component={FaithChallengesScreen}
-        />
-        <Stack.Screen
-          name="GrowthScreen"
-          component={GrowthScreen}
-        />
-        <Stack.Screen
-          name="PrayerHabitsScreen"
-          component={PrayerHabitsScreen}
-        />
-        <Stack.Screen
-          name="SatisfactionScreen"
-          component={SatisfactionScreen}
-        />
-        <Stack.Screen
-          name="ShiftScreen"
-          component={ShiftScreen}
-        />
+        <Stack.Screen name="AgeScreen">
+          {(props) => <AgeScreen {...props} getBackHandler={getBackHandler} />}
+        </Stack.Screen>
+        <Stack.Screen name="BibleVersionScreen">
+          {(props) => <BibleVersionScreen {...props} getBackHandler={getBackHandler} />}
+        </Stack.Screen>
+        <Stack.Screen name="SpiritualJourneyScreen">
+          {(props) => <SpiritualJourneyScreen {...props} getBackHandler={getBackHandler} />}
+        </Stack.Screen>
+        <Stack.Screen name="FaithChallengesScreen">
+          {(props) => <FaithChallengesScreen {...props} getBackHandler={getBackHandler} />}
+        </Stack.Screen>
+        <Stack.Screen name="GrowthScreen">
+          {(props) => <GrowthScreen {...props} getBackHandler={getBackHandler} />}
+        </Stack.Screen>
+        <Stack.Screen name="PrayerHabitsScreen">
+          {(props) => <PrayerHabitsScreen {...props} getBackHandler={getBackHandler} />}
+        </Stack.Screen>
+        <Stack.Screen name="SatisfactionScreen">
+          {(props) => <SatisfactionScreen {...props} getBackHandler={getBackHandler} />}
+        </Stack.Screen>
+        <Stack.Screen name="ShiftScreen">
+          {(props) => <ShiftScreen {...props} getBackHandler={getBackHandler} />}
+        </Stack.Screen>
         <Stack.Screen
           name="FinalScreen"
           component={FinalScreen}

@@ -45,68 +45,7 @@ import StoryDetailScreen from './screens/StoryDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
-// Auth Stack - for non-authenticated users AND unverified users
-function AuthStack() {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-        gestureEnabled: false, // Disable all swipe gestures in auth flow
-      }}
-      initialRouteName="Landing"
-    >
-      <Stack.Screen name="Landing" component={LandingScreen} />
-      <Stack.Screen
-        name="Onboarding"
-        options={{ gestureEnabled: false }} // Disable swipe back to Landing
-      >
-        {(props) => <OnboardingNavigator {...props} parentNavigation={props.navigation} />}
-      </Stack.Screen>
-      <Stack.Screen name="EmailSignIn" component={EmailSignInScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-      <Stack.Screen
-        name="PasswordResetConfirmation"
-        component={PasswordResetConfirmationScreen}
-        options={{ gestureEnabled: false }} // Prevent swiping back
-      />
-      <Stack.Screen
-        name="ResetPassword"
-        component={ResetPasswordScreen}
-        options={{ gestureEnabled: false }} // Prevent swiping back while resetting
-      />
-    </Stack.Navigator>
-  );
-}
-
-// App Stack - for authenticated users
-function AppStack() {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-        gestureEnabled: false, // Disable all swipe gestures in main app
-      }}
-      initialRouteName="Home"
-    >
-      <Stack.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ gestureEnabled: false }} // Prevent swiping back to login
-      />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="Help" component={HelpScreen} />
-      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-      <Stack.Screen name="Stories" component={StoriesScreen} />
-      <Stack.Screen name="StoryDetail" component={StoryDetailScreen} />
-    </Stack.Navigator>
-  );
-}
-
-// Root Navigator - Production-grade auth with no screen flashing
+// Root Navigator - Single navigator with all screens for smooth transitions
 function RootNavigator() {
   const { user, logout, authState, setAuthState } = useAuth();
   const { colors } = useTheme();
@@ -384,99 +323,96 @@ function RootNavigator() {
     );
   }
 
-  // Production routing based on auth status
-  // No flashing, no loading screens, instant navigation
-  console.log('🎯 Routing based on auth status:', authState.status);
-
+  // Determine initial route based on auth status
+  let initialRouteName;
   switch (authState.status) {
     case AUTH_STATUS.UNAUTHENTICATED:
-      console.log('🔓 Unauthenticated - showing AuthStack');
-      return (
-        <View style={{ flex: 1 }} key="auth-unauthenticated">
-          <StatusBar style="dark" />
-          <AuthStack />
-        </View>
-      );
-
+      initialRouteName = 'Landing';
+      break;
     case AUTH_STATUS.AUTHENTICATED_UNVERIFIED:
-      console.log('📧 Authenticated but unverified - showing EmailVerificationScreen in Onboarding');
-      return (
-        <View style={{ flex: 1 }} key="auth-unverified">
-          <StatusBar style="dark" />
-          <Stack.Navigator
-            screenOptions={{ headerShown: false }}
-            initialRouteName="Onboarding"
-          >
-            <Stack.Screen
-              name="Onboarding"
-              options={{ gestureEnabled: false }}
-            >
-              {(props) => (
-                <OnboardingNavigator
-                  {...props}
-                  parentNavigation={props.navigation}
-                  initialRoute="EmailVerificationScreen"
-                />
-              )}
-            </Stack.Screen>
-          </Stack.Navigator>
-        </View>
-      );
-
+      initialRouteName = 'Onboarding';
+      break;
     case AUTH_STATUS.AUTHENTICATED_NO_ACCESS:
-      console.log('💰 Authenticated and verified but no access - showing PaywallScreen');
-      return (
-        <View style={{ flex: 1 }} key="auth-no-access">
-          <StatusBar style="dark" />
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen
-              name="Paywall"
-              component={PaywallScreen}
-              options={{ gestureEnabled: false }}
-            />
-            <Stack.Screen
-              name="EmailSignIn"
-              component={EmailSignInScreen}
-              options={{ gestureEnabled: true }}
-            />
-          </Stack.Navigator>
-        </View>
-      );
-
+      initialRouteName = 'Paywall';
+      break;
     case AUTH_STATUS.AUTHENTICATED_WITH_ACCESS:
-      console.log('✅ Authenticated with access - showing AppStack');
-      return (
-        <View style={{ flex: 1 }} key="auth-with-access">
-          <StatusBar style="dark" />
-          <AppStack />
-        </View>
-      );
-
-    case 'PASSWORD_RESET':
-      console.log('🔐 Password reset mode - showing ResetPasswordScreen');
-      return (
-        <>
-          <StatusBar style="dark" />
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen
-              name="ResetPassword"
-              component={ResetPasswordScreen}
-              options={{ gestureEnabled: false }}
-            />
-          </Stack.Navigator>
-        </>
-      );
-
+      initialRouteName = 'Home';
+      break;
     default:
-      // Fallback to auth stack
-      console.log('⚠️ Unknown auth status - showing AuthStack');
-      return (
-        <View style={{ flex: 1 }} key="auth-fallback">
-          <StatusBar style="dark" />
-          <AuthStack />
-        </View>
-      );
+      initialRouteName = 'Landing';
   }
+
+  console.log('🎯 Rendering single navigator with initial route:', initialRouteName);
+
+  // Single navigator with all screens - smooth transitions, no stuck screens
+  return (
+    <>
+      <StatusBar style="dark" />
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          gestureEnabled: true,
+        }}
+        initialRouteName={initialRouteName}
+      >
+        {/* Auth Screens */}
+        <Stack.Screen
+          name="Landing"
+          component={LandingScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen name="Onboarding">
+          {(props) => (
+            <OnboardingNavigator
+              {...props}
+              parentNavigation={props.navigation}
+              initialRoute={authState.status === AUTH_STATUS.AUTHENTICATED_UNVERIFIED ? 'EmailVerificationScreen' : undefined}
+            />
+          )}
+        </Stack.Screen>
+        <Stack.Screen
+          name="EmailSignIn"
+          component={EmailSignInScreen}
+        />
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
+        />
+        <Stack.Screen
+          name="ResetPassword"
+          component={ResetPasswordScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="PasswordResetConfirmation"
+          component={PasswordResetConfirmationScreen}
+          options={{ gestureEnabled: false }}
+        />
+
+        {/* Paywall Screen */}
+        <Stack.Screen
+          name="Paywall"
+          component={PaywallScreen}
+          options={{ gestureEnabled: false }}
+        />
+
+        {/* App Screens (after subscription) */}
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ gestureEnabled: false }}
+        />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Help" component={HelpScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+        <Stack.Screen name="Stories" component={StoriesScreen} />
+        <Stack.Screen name="StoryDetail" component={StoryDetailScreen} />
+      </Stack.Navigator>
+    </>
+  );
 }
 
 export default function App() {

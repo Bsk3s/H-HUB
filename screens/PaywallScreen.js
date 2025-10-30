@@ -249,7 +249,8 @@ export default function PaywallScreen({ navigation }) {
                         onPress={async () => {
                             console.log('🚪 Authenticated user pressed "Sign out"');
                             await logout();
-                            console.log('✅ Signed out successfully');
+                            console.log('✅ Signed out successfully - navigating to Landing');
+                            navigation.navigate('Landing');
                         }}
                         activeOpacity={0.7}
                     >

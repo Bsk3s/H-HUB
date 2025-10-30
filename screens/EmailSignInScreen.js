@@ -41,11 +41,12 @@ export default function EmailSignInScreen({ navigation }) {
     try {
       const success = await login(email, password);
       if (success) {
-        console.log('✅ Email Sign In successful');
-        // Clear the inputs immediately to prevent them from showing during transition
+        console.log('✅ Email Sign In successful - navigating to Paywall');
+        // Clear the inputs
         setEmail('');
         setPassword('');
-        // App.js will handle routing to PaywallScreen or HomeScreen automatically
+        // Navigate to Paywall screen (single navigator handles this smoothly)
+        navigation.navigate('Paywall');
       } else {
         console.log('❌ Login returned false - check error state');
         console.log('Auth context error:', error);
