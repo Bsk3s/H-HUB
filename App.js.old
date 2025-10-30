@@ -1,0 +1,371 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StatusBar } from 'expo-status-bar';
+import { LogBox } from 'react-native';
+import * as Linking from 'expo-linking';
+import * as SplashScreen from 'expo-splash-screen';
+
+import { SuperwallProvider, useSuperwall } from 'expo-superwall';
+
+// Import providers
+import { AuthProvider, useAuth } from './src/auth/context';
+import { FeedbackProvider } from './src/components/feedback/FeedbackProvider';
+import { ThemeProvider } from './src/contexts/ThemeContext';
+import { useTheme } from './src/hooks/useTheme';
+
+// Import migration helper
+import { migrateJournalsToSupabase } from './services/migrateJournalsToSupabase';
+
+// Import auth initialization
+import { initializeAuth, AUTH_STATUS, clearAuthState } from './src/auth/services/auth-initialization';
+
+// Keep splash screen visible until we're ready
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // In case it's already hidden or there's an error
+  console.log('⚠️ Could not prevent splash screen auto hide');
+});
+
+// Import screens
+import LandingScreen from './screens/LandingScreen';
+import HomeScreen from './screens/HomeScreen';
+import OnboardingNavigator from './components/navigation/OnboardingNavigator';
+import EmailSignInScreen from './screens/EmailSignInScreen';
+import EmailVerificationScreen from './screens/EmailVerificationScreen';
+import PaywallScreen from './screens/PaywallScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import HelpScreen from './screens/HelpScreen';
+import EditProfileScreen from './screens/EditProfileScreen';
+import ChangePasswordScreen from './screens/ChangePasswordScreen';
+import StoriesScreen from './screens/StoriesScreen';
+import StoryDetailScreen from './screens/StoryDetailScreen';
+
+const Stack = createNativeStackNavigator();
+
+// Auth Stack - for non-authenticated users AND unverified users
+function AuthStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+      initialRouteName="Landing"
+    >
+      <Stack.Screen name="Landing" component={LandingScreen} />
+      <Stack.Screen
+        name="Onboarding"
+        options={{ gestureEnabled: false }} // Disable swipe back to Landing
+      >
+        {(props) => <OnboardingNavigator {...props} parentNavigation={props.navigation} />}
+      </Stack.Screen>
+      <Stack.Screen name="EmailSignIn" component={EmailSignInScreen} />
+      <Stack.Screen
+        name="EmailVerification"
+        component={EmailVerificationScreen}
+        options={{ gestureEnabled: false }} // Prevent swiping back
+      />
+    </Stack.Navigator>
+  );
+}
+
+// App Stack - for authenticated users
+function AppStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+      initialRouteName="Home"
+    >
+      <Stack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ gestureEnabled: false }} // Prevent swiping back to login
+      />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Help" component={HelpScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <Stack.Screen name="Stories" component={StoriesScreen} />
+      <Stack.Screen name="StoryDetail" component={StoryDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Root Navigator - Production-grade auth with no screen flashing
+function RootNavigator() {
+  const { user, initializing, logout } = useAuth();
+  const [authState, setAuthState] = useState(null);
+  const [appIsReady, setAppIsReady] = useState(false);
+
+  // Check subscription status using Superwall
+  const { subscriptionStatus } = useSuperwall();
+
+  // Initialize auth on mount (ONCE)
+  useEffect(() => {
+    async function initializeApp() {
+      try {
+        console.log('🚀 App initializing...');
+        
+        // Run auth initialization
+        const authResult = await initializeAuth();
+        
+        // Set auth state
+        setAuthState(authResult);
+        
+        // Mark app as ready
+        setAppIsReady(true);
+        
+        // Hide splash screen
+        await SplashScreen.hideAsync();
+        console.log('✅ App ready');
+      } catch (error) {
+        console.error('❌ App initialization failed:', error);
+        // Still mark as ready to prevent infinite loading
+        setAppIsReady(true);
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    initializeApp();
+  }, []);
+
+  // Update subscription state when Superwall status changes
+  useEffect(() => {
+    if (subscriptionStatus && authState) {
+      const isSubscribed = subscriptionStatus === 'ACTIVE';
+      console.log(`💰 Superwall subscription: ${isSubscribed ? '✅ Active' : '❌ Inactive'}`);
+      
+      // Update auth state if subscription status changed
+      if (isSubscribed && authState.status === AUTH_STATUS.AUTHENTICATED_NO_ACCESS) {
+        setAuthState({
+          ...authState,
+          status: AUTH_STATUS.AUTHENTICATED_WITH_ACCESS,
+          hasSubscription: true,
+        });
+      }
+    }
+  }, [subscriptionStatus, authState]);
+
+  // Handle user logout - clear auth state
+  useEffect(() => {
+    if (!user && authState) {
+      console.log('🚪 User logged out - clearing auth state');
+      clearAuthState();
+      setAuthState(null);
+    }
+  }, [user, authState]);
+
+  // Listen for deep links (verification callback)
+  useEffect(() => {
+    const handleDeepLink = async ({ url }) => {
+      console.log('🔗 Deep link received:', url);
+
+      if (url && url.includes('callback')) {
+        // This is an email verification callback
+        console.log('🔄 Verification callback detected, re-initializing auth...');
+
+        try {
+          // Import supabase here to use it
+          const { supabase } = await import('./src/auth/supabase-client');
+
+          // Check for authorization code (PKCE flow)
+          const queryString = url.split('?')[1];
+          if (queryString) {
+            const params = new URLSearchParams(queryString);
+            const code = params.get('code');
+
+            if (code) {
+              console.log('🔑 Found authorization code, exchanging for session...');
+
+              // Exchange the code for a session
+              const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+              if (error) {
+                console.error('❌ Error exchanging code for session:', error.message);
+              } else if (data.session) {
+                console.log('✅ Session established from code exchange!');
+                console.log('✅ Email verified! User:', data.user.email);
+                
+                // Re-run auth initialization to update state
+                const authResult = await initializeAuth();
+                setAuthState(authResult);
+              }
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error processing verification callback:', error);
+        }
+      } else if (url && (url.includes('verify') || url.includes('verified'))) {
+        // Custom verification trigger (from polling)
+        console.log('🔄 Verification trigger detected, re-checking auth state...');
+        const authResult = await initializeAuth();
+        setAuthState(authResult);
+      }
+    };
+
+    // Listen for links when app is already open
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check if app was opened via deep link
+    Linking.getInitialURL().then(url => {
+      if (url) handleDeepLink({ url });
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Run one-time migration when user is authenticated and verified
+  useEffect(() => {
+    if (authState?.isVerified) {
+      console.log('🔄 User authenticated and verified, checking for journal migration...');
+      migrateJournalsToSupabase()
+        .then(result => {
+          if (result.success && !result.alreadyMigrated) {
+            console.log(`✅ Migrated ${result.migratedCount} journals to Supabase`);
+            if (result.errorCount > 0) {
+              console.log(`⚠️ ${result.errorCount} journals failed to migrate`);
+            }
+          }
+        })
+        .catch(error => {
+          console.error('❌ Migration error:', error);
+        });
+    }
+  }, [authState]);
+
+  // Show loading while checking verification
+  if (initializing || (user && checkingVerification)) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Routing logic
+  // 1. No user → AuthStack (Landing, Onboarding, etc.)
+  // 2. User exists but NOT verified → EmailVerificationScreen
+  // 3. User exists AND verified but NO subscription → PaywallScreen
+  // 4. User exists AND verified AND has subscription → AppStack (full access)
+
+  if (!user) {
+    // Not logged in - show auth flow
+    console.log('🔓 No user - showing AuthStack');
+    return (
+      <>
+        <StatusBar style="dark" />
+        <AuthStack />
+      </>
+    );
+  }
+
+  if (user && isVerified !== true) {
+    // User logged in but email not verified (or verification status unknown)
+    // Show verification screen until we confirm they're verified
+    console.log('⚠️ User not verified, showing EmailVerificationScreen');
+    return (
+      <>
+        <StatusBar style="dark" />
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen
+            name="EmailVerification"
+            component={EmailVerificationScreen}
+            initialParams={{ email: user?.email || '' }}
+            options={{ gestureEnabled: false }}
+          />
+        </Stack.Navigator>
+      </>
+    );
+  }
+
+  if (user && isVerified === true) {
+    // Wait for database access check to complete
+    if (checkingPremiumAccess) {
+      console.log('⏳ Checking premium access...');
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+          <ActivityIndicator size="large" color="#667eea" />
+          <Text style={{ marginTop: 16, fontSize: 16, color: '#666' }}>Loading...</Text>
+        </View>
+      );
+    }
+
+    // User is verified - now check access (Superwall subscription OR database flag)
+    const hasAnyAccess = hasSubscription === true || hasPremiumAccess === true;
+
+    if (!hasAnyAccess) {
+      // No Superwall subscription AND no database access - show hard paywall
+      console.log('💰 User verified but no access - showing PaywallScreen');
+      console.log(`   - Superwall: ${hasSubscription === true ? '✅' : '❌'}`);
+      console.log(`   - Database: ${hasPremiumAccess === true ? '✅' : '❌'}`);
+      return (
+        <>
+          <StatusBar style="dark" />
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen
+              name="Paywall"
+              component={PaywallScreen}
+              options={{ gestureEnabled: false }}
+            />
+          </Stack.Navigator>
+        </>
+      );
+    }
+
+    // User has access (either via Superwall OR database flag) - show app
+    console.log('✅ User verified and has access - showing AppStack');
+    if (hasSubscription === true) {
+      console.log('   ✅ Access granted via: Superwall subscription (paid)');
+    }
+    if (hasPremiumAccess === true) {
+      console.log('   ✅ Access granted via: Database flag (admin override)');
+    }
+    return (
+      <>
+        <StatusBar style="dark" />
+        <AppStack />
+      </>
+    );
+  }
+
+  // Fallback (shouldn't reach here, but just in case)
+  console.log('🔓 No user - showing AuthStack');
+  return (
+    <>
+      <StatusBar style="dark" />
+      <AuthStack />
+    </>
+  );
+}
+
+export default function App() {
+  // Suppress ugly error messages in production
+  LogBox.ignoreAllLogs(true);
+
+  return (
+    <SuperwallProvider
+      apiKeys={{
+        ios: 'pk_9abf3947d5af4d1ca39c806925aa53563e6314e2e13f4c49',
+        android: 'pk_9abf3947d5af4d1ca39c806925aa53563e6314e2e13f4c49'
+      }}
+    >
+    <ThemeProvider>
+      <FeedbackProvider>
+        <AuthProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </AuthProvider>
+      </FeedbackProvider>
+    </ThemeProvider>
+    </SuperwallProvider>
+  );
+}

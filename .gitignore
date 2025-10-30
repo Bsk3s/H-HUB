@@ -30,7 +30,17 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+.env.local
+.env.development
+.env.production
 
 # typescript
 *.tsbuildinfo
+
+# Backup and test directories
+test-minimal/
+ios-backup/
+android-backup/
+HB1-source/

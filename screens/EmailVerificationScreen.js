@@ -8,30 +8,37 @@ import {
     Linking,
     Alert,
     ActivityIndicator,
-    Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { resendVerificationEmail, checkEmailVerified } from '../src/auth/services/auth-service';
+import { resendVerificationEmail, checkEmailVerified, deleteCurrentUser } from '../src/auth/services/auth-service';
 import { ensureUserProfile } from '../src/auth/services/profile-service';
 import { useAuth } from '../src/auth/context';
 import Button from '../components/ui/Button';
 
 export default function EmailVerificationScreen({ route, navigation }) {
-    const { email } = route.params;
-    const { logout, user } = useAuth();
+    const { user } = useAuth();
+    // Get email from route params or from authenticated user
+    const email = route.params?.email || user?.email || '';
     const [isResending, setIsResending] = useState(false);
     const [resendCooldown, setResendCooldown] = useState(0);
     const [isChecking, setIsChecking] = useState(true);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
-    // Polling: Check verification status every 3 seconds
+    // Polling: Check verification status every 5 seconds
+    // This is the PRIMARY verification mechanism (deep link is secondary/bonus)
     useEffect(() => {
         console.log('📧 EmailVerificationScreen mounted - starting polling in 2 seconds...');
+        let pollInterval;
+        let isVerified = false;
 
         const checkVerification = async () => {
+            // Don't check if already verified (prevent race condition)
+            if (isVerified) return;
+
             try {
                 const verified = await checkEmailVerified();
                 if (verified) {
-                    console.log('✅ Email verified! Creating user profile...');
+                    console.log('✅ Email verified via polling! Creating user profile...');
+                    isVerified = true;
                     clearInterval(pollInterval);
 
                     // Create user profile NOW (after verification)
@@ -59,17 +66,16 @@ export default function EmailVerificationScreen({ route, navigation }) {
 
         // Wait 2 seconds before first check (give session time to initialize)
         const initialDelay = setTimeout(() => {
-            console.log('📧 Starting verification polling now...');
+            console.log('📧 Starting verification polling now (every 5s)...');
             checkVerification().then(() => setIsChecking(false));
 
-            // Then poll every 3 seconds
-            pollInterval = setInterval(checkVerification, 3000);
+            // Then poll every 5 seconds (not too aggressive for rate limiting)
+            pollInterval = setInterval(checkVerification, 5000);
         }, 2000);
-
-        let pollInterval;
 
         return () => {
             console.log('📧 EmailVerificationScreen unmounting - stopping polling');
+            isVerified = true; // Prevent any pending checks
             clearTimeout(initialDelay);
             if (pollInterval) {
                 clearInterval(pollInterval);
@@ -137,35 +143,54 @@ export default function EmailVerificationScreen({ route, navigation }) {
         }
     };
 
-    const handleWrongEmail = () => {
+    const handleWrongEmail = async () => {
+        if (isDeletingAccount) return; // Prevent double-tap
+
         Alert.alert(
-            'Wrong Email?',
-            'Go back to fix your email. All your onboarding answers are saved.',
+            'Change Email Address?',
+            'This will delete your account and you can create a new one with the correct email.',
             [
-                { text: 'Cancel', style: 'cancel' },
                 {
-                    text: 'Fix Email',
+                    text: 'Cancel',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Change Email',
+                    style: 'destructive',
                     onPress: async () => {
+                        setIsDeletingAccount(true);
                         try {
-                            // Set flag so Landing/AuthStack knows to go to SignUpScreen
-                            await AsyncStorage.setItem('returnToSignUp', 'true');
-                            console.log('📝 Set returnToSignUp flag');
+                            console.log('🗑️ Deleting account with wrong email...');
 
-                            // Log out to clear the wrong account
-                            console.log('🚪 Logging out to return to signup...');
-                            const success = await logout();
+                            // Delete the account (will also sign out)
+                            const result = await deleteCurrentUser();
 
-                            if (success) {
-                                console.log('✅ Logout successful - app should route to landing/signup');
-                                // Give React a moment to process the state change
-                                // App.js will detect no user and show AuthStack
-                            } else {
-                                console.error('❌ Logout failed');
-                                Alert.alert('Error', 'Failed to go back. Please try again.');
+                            if (result.success) {
+                                if (result.deletedCompletely) {
+                                    console.log('✅ Account deleted successfully');
+                                } else {
+                                    console.log('✅ Signed out successfully (account may still exist)');
+                                }
+
+                                // Reset navigation to proper state - removes EmailVerification from history
+                                console.log('🔄 Resetting navigation to SignUpScreen with proper history');
+                                navigation.reset({
+                                    index: 1,
+                                    routes: [
+                                        { name: 'FinalScreen' },
+                                        { name: 'SignUpScreen' }
+                                    ],
+                                });
                             }
                         } catch (error) {
-                            console.error('❌ Error navigating back:', error);
-                            Alert.alert('Error', 'Something went wrong. Please try again.');
+                            console.error('❌ Error handling wrong email:', error);
+                            Alert.alert(
+                                'Error',
+                                'Failed to change email. Please try again.',
+                                [{ text: 'OK' }]
+                            );
+                        } finally {
+                            setIsDeletingAccount(false);
                         }
                     }
                 }
@@ -241,13 +266,15 @@ export default function EmailVerificationScreen({ route, navigation }) {
                     </Text>
                 </View>
 
-                {/* Wrong Email Link */}
+                {/* Wrong Email Button - Larger, More Obvious */}
                 <TouchableOpacity
                     onPress={handleWrongEmail}
-                    style={styles.wrongEmailContainer}
+                    style={styles.wrongEmailButton}
+                    activeOpacity={0.7}
+                    disabled={isDeletingAccount}
                 >
-                    <Text style={styles.wrongEmailText}>
-                        Wrong email address?
+                    <Text style={[styles.wrongEmailText, isDeletingAccount && { opacity: 0.5 }]}>
+                        {isDeletingAccount ? 'Changing email...' : 'Wrong email address?'}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -353,9 +380,10 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
         marginLeft: 8,
     },
-    wrongEmailContainer: {
+    wrongEmailButton: {
         marginTop: 32,
         paddingVertical: 12,
+        paddingHorizontal: 16,
     },
     wrongEmailText: {
         fontSize: 14,

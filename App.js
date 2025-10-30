@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { LogBox, View, ActivityIndicator, Text } from 'react-native';
+import { LogBox, View, Alert } from 'react-native';
 import * as Linking from 'expo-linking';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SplashScreen from 'expo-splash-screen';
 
 import { SuperwallProvider, useSuperwall } from 'expo-superwall';
 
@@ -17,16 +17,24 @@ import { useTheme } from './src/hooks/useTheme';
 // Import migration helper
 import { migrateJournalsToSupabase } from './services/migrateJournalsToSupabase';
 
-// Import auth services
-import { checkEmailVerified, checkPremiumAccess } from './src/auth/services/auth-service';
+// Import auth initialization
+import { initializeAuth, AUTH_STATUS, clearAuthState } from './src/auth/services/auth-initialization';
+
+// Keep splash screen visible until we're ready
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // In case it's already hidden or there's an error
+  console.log('⚠️ Could not prevent splash screen auto hide');
+});
 
 // Import screens
 import LandingScreen from './screens/LandingScreen';
 import HomeScreen from './screens/HomeScreen';
 import OnboardingNavigator from './components/navigation/OnboardingNavigator';
 import EmailSignInScreen from './screens/EmailSignInScreen';
-import EmailVerificationScreen from './screens/EmailVerificationScreen';
 import PaywallScreen from './screens/PaywallScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import PasswordResetConfirmationScreen from './screens/PasswordResetConfirmationScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import HelpScreen from './screens/HelpScreen';
@@ -44,6 +52,7 @@ function AuthStack() {
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
+        gestureEnabled: false, // Disable all swipe gestures in auth flow
       }}
       initialRouteName="Landing"
     >
@@ -55,10 +64,16 @@ function AuthStack() {
         {(props) => <OnboardingNavigator {...props} parentNavigation={props.navigation} />}
       </Stack.Screen>
       <Stack.Screen name="EmailSignIn" component={EmailSignInScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <Stack.Screen
-        name="EmailVerification"
-        component={EmailVerificationScreen}
+        name="PasswordResetConfirmation"
+        component={PasswordResetConfirmationScreen}
         options={{ gestureEnabled: false }} // Prevent swiping back
+      />
+      <Stack.Screen
+        name="ResetPassword"
+        component={ResetPasswordScreen}
+        options={{ gestureEnabled: false }} // Prevent swiping back while resetting
       />
     </Stack.Navigator>
   );
@@ -71,6 +86,7 @@ function AppStack() {
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
+        gestureEnabled: false, // Disable all swipe gestures in main app
       }}
       initialRouteName="Home"
     >
@@ -90,78 +106,85 @@ function AppStack() {
   );
 }
 
-// Root Navigator - switches between Auth and App stacks based on auth state
+// Root Navigator - Production-grade auth with no screen flashing
 function RootNavigator() {
-  const { user, initializing } = useAuth();
+  const { user, logout, authState, setAuthState } = useAuth();
   const { colors } = useTheme();
-  const [isVerified, setIsVerified] = useState(null);
-  const [checkingVerification, setCheckingVerification] = useState(true);
-  const [hasSubscription, setHasSubscription] = useState(null);
-  const [hasPremiumAccess, setHasPremiumAccess] = useState(null);
-  const [checkingPremiumAccess, setCheckingPremiumAccess] = useState(true);
+  const [appIsReady, setAppIsReady] = useState(false);
 
   // Check subscription status using Superwall
   const { subscriptionStatus } = useSuperwall();
 
+  // Initialize auth on mount (ONCE)
+  useEffect(() => {
+    async function initializeApp() {
+      try {
+        console.log('🚀 App initializing...');
+
+        // Run auth initialization
+        const authResult = await initializeAuth();
+
+        // Set auth state
+        setAuthState(authResult);
+
+        // Mark app as ready
+        setAppIsReady(true);
+
+        // Hide splash screen
+        await SplashScreen.hideAsync();
+        console.log('✅ App ready');
+      } catch (error) {
+        console.error('❌ App initialization failed:', error);
+        // Still mark as ready to prevent infinite loading
+        setAppIsReady(true);
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    initializeApp();
+  }, []);
+
+  // Listen for logout - when user goes from logged in to logged out
+  useEffect(() => {
+    // Only clear auth state if we had a user and now don't (actual logout)
+    // Don't run on initial mount when both are null
+    if (user === null && authState && authState.status !== AUTH_STATUS.UNAUTHENTICATED && appIsReady) {
+      console.log('🚪 User logged out - re-initializing auth');
+      // Re-run initialization instead of just clearing
+      async function handleLogout() {
+        const authResult = await initializeAuth();
+        setAuthState(authResult);
+      }
+      handleLogout();
+    }
+  }, [user]);
+
+  // REMOVED: The useEffect that was causing double renders
+  // Now authState updates directly in the login function in AuthContext
+
   // Update subscription state when Superwall status changes
   useEffect(() => {
-    if (subscriptionStatus) {
+    if (subscriptionStatus && authState) {
       const isSubscribed = subscriptionStatus === 'ACTIVE';
       console.log(`💰 Superwall subscription: ${isSubscribed ? '✅ Active' : '❌ Inactive'}`);
-      setHasSubscription(isSubscribed);
-    }
-  }, [subscriptionStatus]);
 
-  // Check database premium access flag when user changes
-  useEffect(() => {
-    async function checkDatabaseAccess() {
-      if (user && !initializing) {
-        setCheckingPremiumAccess(true);
-        console.log('🔍 Checking database premium access flag...');
-        const hasAccess = await checkPremiumAccess(user.id);
-        console.log(`🎫 Database premium access: ${hasAccess ? '✅ Granted (admin override)' : '❌ Not granted'}`);
-        setHasPremiumAccess(hasAccess);
-        setCheckingPremiumAccess(false);
-      } else if (!user) {
-        setHasPremiumAccess(null);
-        setCheckingPremiumAccess(false);
+      // Update auth state if subscription status changed
+      if (isSubscribed && authState.status === AUTH_STATUS.AUTHENTICATED_NO_ACCESS) {
+        setAuthState({
+          ...authState,
+          status: AUTH_STATUS.AUTHENTICATED_WITH_ACCESS,
+          hasSubscription: true,
+        });
       }
     }
+  }, [subscriptionStatus, authState]);
 
-    checkDatabaseAccess();
-  }, [user, initializing]);
-
-  // Check email verification status when user changes
-  useEffect(() => {
-    async function checkVerification() {
-    if (user && !initializing) {
-        console.log('🔍 Checking email verification status...');
-        const verified = await checkEmailVerified();
-        console.log(`📧 Email verification status: ${verified ? '✅ Verified' : '❌ Not verified'}`);
-        setIsVerified(verified);
-        setCheckingVerification(false);
-      } else if (!user) {
-        // No user logged in - reset verification state
-        console.log('👤 No user - resetting verification state');
-        setIsVerified(null);
-        setHasSubscription(null);
-        setCheckingVerification(false);
-      }
-    }
-
-    checkVerification();
-  }, [user, initializing]);
-
-  // Listen for deep links (verification callback)
+  // Listen for deep links (verification callback and password reset)
   useEffect(() => {
     const handleDeepLink = async ({ url }) => {
       console.log('🔗 Deep link received:', url);
 
       if (url && url.includes('callback')) {
-        // This is an email verification callback
-        console.log('🔄 Verification callback detected, processing...');
-        setCheckingVerification(true);
-
         try {
           // Import supabase here to use it
           const { supabase } = await import('./src/auth/supabase-client');
@@ -170,92 +193,151 @@ function RootNavigator() {
           const queryString = url.split('?')[1];
           if (queryString) {
             const params = new URLSearchParams(queryString);
+            const error = params.get('error');
+            const errorCode = params.get('error_code');
+            const errorDescription = params.get('error_description');
             const code = params.get('code');
+            const type = params.get('type');
+
+            // Handle errors from Supabase (expired links, etc.)
+            if (error) {
+              console.error('❌ Deep link error:', error, errorCode, errorDescription);
+
+              let userMessage = 'There was an issue with the verification link.';
+
+              if (errorCode === 'otp_expired') {
+                userMessage = 'This verification link has expired. Please tap "Resend Email" to get a new one.';
+              }
+
+              Alert.alert(
+                'Verification Link Issue',
+                userMessage,
+                [{ text: 'OK' }]
+              );
+              return;
+            }
 
             if (code) {
               console.log('🔑 Found authorization code, exchanging for session...');
 
-              // Exchange the code for a session
-              const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+              // Retry mechanism for network failures
+              let data = null;
+              let error = null;
+              const maxRetries = 3;
+
+              for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                console.log(`   Attempt ${attempt}/${maxRetries}...`);
+
+                const result = await supabase.auth.exchangeCodeForSession(code);
+                data = result.data;
+                error = result.error;
+
+                if (!error) {
+                  console.log(`✅ Session exchange succeeded on attempt ${attempt}`);
+                  break;
+                }
+
+                console.log(`   Failed: ${error.message}`);
+
+                // Wait before retry (exponential backoff)
+                if (attempt < maxRetries) {
+                  const waitTime = attempt * 1000; // 1s, 2s
+                  console.log(`   Retrying in ${waitTime}ms...`);
+                  await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
+              }
 
               if (error) {
-                console.error('❌ Error exchanging code for session:', error.message);
+                console.error('❌ Error exchanging code for session after retries:', error.message);
+
+                // Show user-friendly error
+                Alert.alert(
+                  'Verification Issue',
+                  'We had trouble verifying your email. This might be due to network issues. Please try:\n\n1. Check your internet connection\n2. Wait a minute and try clicking the link again\n3. Or tap "Resend Email" to get a new link',
+                  [{ text: 'OK' }]
+                );
+                return;
               } else if (data.session) {
                 console.log('✅ Session established from code exchange!');
-                console.log('✅ Email verified! User:', data.user.email);
-                setIsVerified(true);
 
-                // Clear onboarding progress now that email is verified
-                try {
-                  await AsyncStorage.removeItem('onboardingProgress');
-                  console.log('🗑️ Cleared onboarding progress after verification');
-                } catch (err) {
-                  console.error('Error clearing onboarding progress:', err);
+                // Check if this is a password reset or email verification
+                if (type === 'recovery') {
+                  // Password reset flow
+                  console.log('🔐 Password reset callback detected');
+                  console.log('✅ User can now reset password:', data.user.email);
+
+                  // Navigate to ResetPasswordScreen
+                  // Note: We need to use a navigation ref or update authState to show ResetPasswordScreen
+                  // For now, we'll set a flag in authState
+                  setAuthState({
+                    status: 'PASSWORD_RESET',
+                    user: data.user,
+                    isVerified: true,
+                    hasPremiumAccess: false,
+                    hasSubscription: false,
+                  });
+                } else {
+                  // Email verification flow
+                  console.log('✅ Email verified! User:', data.user.email);
+
+                  // Production solution: Retry mechanism with exponential backoff
+                  // Supabase backend can take 1-2 seconds to update email_confirmed_at
+                  console.log('🔄 Waiting for email_confirmed_at to be populated (with retries)...');
+
+                  let freshSession = null;
+                  const maxRetries = 6;
+
+                  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    console.log(`   Attempt ${attempt}/${maxRetries}...`);
+
+                    // Wait before checking (500ms, then 500ms, etc.)
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    // Get fresh session
+                    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+                    if (sessionError) {
+                      console.error('❌ Error fetching session:', sessionError.message);
+                      break;
+                    }
+
+                    if (session?.user?.email_confirmed_at) {
+                      console.log(`✅ email_confirmed_at populated on attempt ${attempt}!`);
+                      freshSession = session;
+                      break;
+                    }
+
+                    console.log(`   email_confirmed_at still null, retrying...`);
+                  }
+
+                  if (freshSession?.user) {
+                    console.log('✅ Fresh verified session retrieved');
+                    console.log('   Email verified:', !!freshSession.user.email_confirmed_at);
+
+                    // Explicitly update authState with verified user
+                    const authResult = await initializeAuth(freshSession.user);
+                    setAuthState(authResult);
+                    console.log('✅ Auth state updated - should route to:', authResult.status);
+                  } else {
+                    console.error('❌ Failed to get verified session after retries');
+                    // Fallback: Let the polling mechanism in EmailVerificationScreen handle it
+                  }
                 }
               }
-              setCheckingVerification(false);
               return;
             }
-          }
-
-          // Fallback: Check for tokens in hash (old flow)
-          const hashParams = url.split('#')[1];
-          if (hashParams) {
-            const params = new URLSearchParams(hashParams);
-            const accessToken = params.get('access_token');
-            const refreshToken = params.get('refresh_token');
-
-            if (accessToken && refreshToken) {
-              console.log('🔑 Found tokens in callback URL, establishing session...');
-
-              // Set the session with the tokens from the URL
-              const { data, error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              });
-
-              if (error) {
-                console.error('❌ Error setting session from callback:', error.message);
-              } else if (data.session) {
-                console.log('✅ Session established from verification callback!');
-                console.log('✅ Email verified! User:', data.user.email);
-                setIsVerified(true);
-
-                // Clear onboarding progress now that email is verified
-                try {
-                  await AsyncStorage.removeItem('onboardingProgress');
-                  console.log('🗑️ Cleared onboarding progress after verification');
-                } catch (err) {
-                  console.error('Error clearing onboarding progress:', err);
-                }
-              }
-              setCheckingVerification(false);
-              return;
-            }
-          }
-
-          // No code or tokens found - just recheck status
-          console.log('⚠️ No code or tokens found in callback URL, rechecking status...');
-          const verified = await checkEmailVerified();
-          if (verified) {
-            console.log('✅ Email verified!');
-            setIsVerified(true);
           }
         } catch (error) {
-          console.error('❌ Error processing verification callback:', error);
-        } finally {
-          setCheckingVerification(false);
+          console.error('❌ Error processing callback:', error);
         }
       } else if (url && (url.includes('verify') || url.includes('verified'))) {
         // Custom verification trigger (from polling)
-        console.log('🔄 Verification trigger detected, rechecking status...');
-        setCheckingVerification(true);
-        const verified = await checkEmailVerified();
-        if (verified) {
-          console.log('✅ Email verified! Updating state...');
-          setIsVerified(true);
-        }
-        setCheckingVerification(false);
+        console.log('🔄 Verification trigger detected, re-checking auth state...');
+        // Get fresh user from Supabase instead of using potentially stale closure variable
+        const { supabase } = await import('./src/auth/supabase-client');
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        const authResult = await initializeAuth(freshUser);
+        setAuthState(authResult);
       }
     };
 
@@ -274,7 +356,7 @@ function RootNavigator() {
 
   // Run one-time migration when user is authenticated and verified
   useEffect(() => {
-    if (user && !initializing && isVerified) {
+    if (authState?.isVerified) {
       console.log('🔄 User authenticated and verified, checking for journal migration...');
       migrateJournalsToSupabase()
         .then(result => {
@@ -289,75 +371,62 @@ function RootNavigator() {
           console.error('❌ Migration error:', error);
         });
     }
-  }, [user, initializing, isVerified]);
+  }, [authState]);
 
-  // Show loading while checking verification
-  if (initializing || (user && checkingVerification)) {
+  // Wait for app to be ready (splash screen is showing)
+  if (!appIsReady || !authState) {
+    console.log('⏳ Waiting for app to be ready...', { appIsReady, authState: !!authState });
+    // Splash screen is showing, but add fallback in case it fails
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        {/* Empty view - splash screen should be showing */}
       </View>
     );
   }
 
-  // Routing logic
-  // 1. No user → AuthStack (Landing, Onboarding, etc.)
-  // 2. User exists but NOT verified → EmailVerificationScreen
-  // 3. User exists AND verified but NO subscription → PaywallScreen
-  // 4. User exists AND verified AND has subscription → AppStack (full access)
+  // Production routing based on auth status
+  // No flashing, no loading screens, instant navigation
+  console.log('🎯 Routing based on auth status:', authState.status);
 
-  if (!user) {
-    // Not logged in - show auth flow
-    console.log('🔓 No user - showing AuthStack');
-    return (
-      <>
-        <StatusBar style="dark" />
-        <AuthStack />
-      </>
-    );
-  }
-
-  if (user && isVerified !== true) {
-    // User logged in but email not verified (or verification status unknown)
-    // Show verification screen until we confirm they're verified
-    console.log('⚠️ User not verified, showing EmailVerificationScreen');
-    return (
-      <>
-        <StatusBar style="dark" />
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen
-            name="EmailVerification"
-            component={EmailVerificationScreen}
-            initialParams={{ email: user?.email || '' }}
-            options={{ gestureEnabled: false }}
-          />
-        </Stack.Navigator>
-      </>
-    );
-  }
-
-  if (user && isVerified === true) {
-    // Wait for database access check to complete
-    if (checkingPremiumAccess) {
-      console.log('⏳ Checking premium access...');
+  switch (authState.status) {
+    case AUTH_STATUS.UNAUTHENTICATED:
+      console.log('🔓 Unauthenticated - showing AuthStack');
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-          <ActivityIndicator size="large" color="#667eea" />
-          <Text style={{ marginTop: 16, fontSize: 16, color: '#666' }}>Loading...</Text>
+        <View style={{ flex: 1 }} key="auth-unauthenticated">
+          <StatusBar style="dark" />
+          <AuthStack />
         </View>
       );
-    }
 
-    // User is verified - now check access (Superwall subscription OR database flag)
-    const hasAnyAccess = hasSubscription === true || hasPremiumAccess === true;
-
-    if (!hasAnyAccess) {
-      // No Superwall subscription AND no database access - show hard paywall
-      console.log('💰 User verified but no access - showing PaywallScreen');
-      console.log(`   - Superwall: ${hasSubscription === true ? '✅' : '❌'}`);
-      console.log(`   - Database: ${hasPremiumAccess === true ? '✅' : '❌'}`);
+    case AUTH_STATUS.AUTHENTICATED_UNVERIFIED:
+      console.log('📧 Authenticated but unverified - showing EmailVerificationScreen in Onboarding');
       return (
-        <>
+        <View style={{ flex: 1 }} key="auth-unverified">
+          <StatusBar style="dark" />
+          <Stack.Navigator
+            screenOptions={{ headerShown: false }}
+            initialRouteName="Onboarding"
+          >
+            <Stack.Screen
+              name="Onboarding"
+              options={{ gestureEnabled: false }}
+            >
+              {(props) => (
+                <OnboardingNavigator
+                  {...props}
+                  parentNavigation={props.navigation}
+                  initialRoute="EmailVerificationScreen"
+                />
+              )}
+            </Stack.Screen>
+          </Stack.Navigator>
+        </View>
+      );
+
+    case AUTH_STATUS.AUTHENTICATED_NO_ACCESS:
+      console.log('💰 Authenticated and verified but no access - showing PaywallScreen');
+      return (
+        <View style={{ flex: 1 }} key="auth-no-access">
           <StatusBar style="dark" />
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen
@@ -365,57 +434,70 @@ function RootNavigator() {
               component={PaywallScreen}
               options={{ gestureEnabled: false }}
             />
+            <Stack.Screen
+              name="EmailSignIn"
+              component={EmailSignInScreen}
+              options={{ gestureEnabled: true }}
+            />
+          </Stack.Navigator>
+        </View>
+      );
+
+    case AUTH_STATUS.AUTHENTICATED_WITH_ACCESS:
+      console.log('✅ Authenticated with access - showing AppStack');
+      return (
+        <View style={{ flex: 1 }} key="auth-with-access">
+          <StatusBar style="dark" />
+          <AppStack />
+        </View>
+      );
+
+    case 'PASSWORD_RESET':
+      console.log('🔐 Password reset mode - showing ResetPasswordScreen');
+      return (
+        <>
+          <StatusBar style="dark" />
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen
+              name="ResetPassword"
+              component={ResetPasswordScreen}
+              options={{ gestureEnabled: false }}
+            />
           </Stack.Navigator>
         </>
       );
-    }
 
-    // User has access (either via Superwall OR database flag) - show app
-    console.log('✅ User verified and has access - showing AppStack');
-    if (hasSubscription === true) {
-      console.log('   ✅ Access granted via: Superwall subscription (paid)');
-    }
-    if (hasPremiumAccess === true) {
-      console.log('   ✅ Access granted via: Database flag (admin override)');
-    }
-    return (
-      <>
-        <StatusBar style="dark" />
-        <AppStack />
-      </>
-    );
+    default:
+      // Fallback to auth stack
+      console.log('⚠️ Unknown auth status - showing AuthStack');
+      return (
+        <View style={{ flex: 1 }} key="auth-fallback">
+          <StatusBar style="dark" />
+          <AuthStack />
+        </View>
+      );
   }
-
-  // Fallback (shouldn't reach here, but just in case)
-  console.log('🔓 No user - showing AuthStack');
-  return (
-    <>
-      <StatusBar style="dark" />
-      <AuthStack />
-    </>
-  );
 }
 
 export default function App() {
-  // Suppress ugly error messages in production
-  LogBox.ignoreAllLogs(true);
 
   return (
     <SuperwallProvider
       apiKeys={{
-        ios: 'pk_9abf3947d5af4d1ca39c806925aa53563e6314e2e13f4c49',
-        android: 'pk_9abf3947d5af4d1ca39c806925aa53563e6314e2e13f4c49'
+        ios: process.env.EXPO_PUBLIC_SUPERWALL_IOS_KEY,
+        android: process.env.EXPO_PUBLIC_SUPERWALL_ANDROID_KEY
       }}
     >
-    <ThemeProvider>
-      <FeedbackProvider>
-        <AuthProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </AuthProvider>
-      </FeedbackProvider>
-    </ThemeProvider>
+      <ThemeProvider>
+        <FeedbackProvider>
+          <AuthProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </AuthProvider>
+        </FeedbackProvider>
+      </ThemeProvider>
     </SuperwallProvider>
   );
 }
+

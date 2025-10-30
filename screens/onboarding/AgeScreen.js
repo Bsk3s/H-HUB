@@ -9,7 +9,7 @@ import ProgressHeader, { STEP_COLORS } from '../../components/ui/ProgressHeader'
 export default function AgeScreen({ navigation }) {
   const [selectedAge, setSelectedAge] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+
   // Define age group options
   const ageGroups = [
     { id: 1, label: '13-17' },
@@ -31,7 +31,7 @@ export default function AgeScreen({ navigation }) {
       try {
         // Save to AsyncStorage for accumulation across screens
         await AsyncStorage.setItem('selectedAgeGroup', JSON.stringify(selectedAge));
-        
+
         navigation.navigate('BibleVersionScreen');
       } catch (error) {
         console.error('Error saving age group:', error);
@@ -48,9 +48,9 @@ export default function AgeScreen({ navigation }) {
       <View style={styles.content}>
         {/* Progress bar and back button */}
         <View style={styles.headerContainer}>
-          <ProgressHeader 
-            currentStep={2} 
-            totalSteps={11} 
+          <ProgressHeader
+            currentStep={2}
+            totalSteps={11}
             onBack={handleBack}
           />
         </View>

@@ -48,7 +48,7 @@ export default function EditProfileScreen({ navigation }) {
 
   const handleSave = async () => {
     const trimmedName = profile.name.trim();
-    
+
     if (!trimmedName) {
       Alert.alert('Error', 'Name is required');
       return;
@@ -84,13 +84,13 @@ export default function EditProfileScreen({ navigation }) {
       // TODO: Implement actual profile update
       // const result = await updateUserProfile(user.id, updateData);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
+
       Alert.alert('Success', 'Profile updated successfully', [
         { text: 'OK', onPress: () => handleBack() }
       ]);
     } catch (error) {
       console.error('Error updating profile:', error);
-      
+
       // More detailed error messages
       let errorMessage = 'Failed to update profile';
       if (error.message?.includes('duplicate')) {
@@ -102,7 +102,7 @@ export default function EditProfileScreen({ navigation }) {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       showErrorAlert(error, 'Profile Update Failed');
     } finally {
       setLoading(false);
@@ -139,9 +139,9 @@ export default function EditProfileScreen({ navigation }) {
             <ArrowLeft size={24} color="#374151" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Profile</Text>
-          <TouchableOpacity 
-            onPress={handleSave} 
-            disabled={loading} 
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={loading}
             style={styles.saveButton}
           >
             <Save size={24} color={loading ? "#9CA3AF" : "#8B5CF6"} />

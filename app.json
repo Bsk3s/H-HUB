@@ -7,6 +7,8 @@
     "icon": "./assets/HB.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
+    "privacy": "public",
+    "privacyPolicyUrl": "https://a-heavenlyhub.com/privacy",
     "splash": {
       "image": "./assets/images/HBMAIN1.png",
       "resizeMode": "contain",
@@ -14,10 +16,20 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.bsk3s.heavenlyhub",
+      "buildNumber": "233",
+      "associatedDomains": [
+        "applinks:app.a-heavenlyhub.com",
+        "webcredentials:app.a-heavenlyhub.com"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "This app uses the camera for video calls",
-        "NSMicrophoneUsageDescription": "This app uses the microphone for voice calls"
+        "NSCameraUsageDescription": "Heavenly Hub uses your camera to capture photos for personalizing your profile and sharing faith-based content with your community.",
+        "NSMicrophoneUsageDescription": "Your microphone enables voice conversations with our AI spiritual guide, voice-to-text prayers, and interactive Bible study discussions to deepen your faith journey.",
+        "NSPhotoLibraryUsageDescription": "Access your photo library to personalize your profile picture, add meaningful images to your journal entries, and share inspirational content."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -53,6 +65,7 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
+    "scheme": "com.bsk3s.heavenlyhub",
     "updates": {
       "enabled": false
     },
@@ -79,8 +92,8 @@
       "eas": {
         "projectId": "a858d93a-8c2b-48aa-8c5c-2ac5f8411618"
       },
-      "bibleApiKey": "c9afcb2ed06b4d336db834d2e03526cf",
-      "apiUrl": "https://livekit-voice-agent-0jz0.onrender.com"
+      "bibleApiKey": "${EXPO_PUBLIC_BIBLE_API_KEY}",
+      "apiUrl": "${EXPO_PUBLIC_API_URL}"
     },
     "owner": "bstr",
     "developer": {

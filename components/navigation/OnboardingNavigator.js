@@ -10,6 +10,7 @@ import ErrorBoundary from '../../src/components/ErrorBoundary';
 import Button from '../../components/ui/Button';
 import ProgressHeader, { STEP_COLORS } from '../../components/ui/ProgressHeader';
 import { useAuth } from '../../src/auth/context';
+import EmailVerificationScreen from '../../screens/EmailVerificationScreen';
 
 // Onboarding screen order - used for progress tracking
 const ONBOARDING_SCREENS = [
@@ -500,25 +501,24 @@ function ShiftScreen({ navigation }) {
   );
 }
 
-// 10. Final Screen - Name and Age input
+// 10. Final Screen - Name input only
 function FinalScreen({ navigation }) {
   const [name, setName] = useState('');
-  const [age, setAge] = useState('');
 
   useEffect(() => {
     saveOnboardingProgress('FinalScreen');
   }, []);
   const [loading, setLoading] = useState(false);
 
-  const isValid = name.trim().length > 0 && age.trim().length > 0;
+  // Only name is required
+  const isValid = name.trim().length > 0;
 
   const handleComplete = async () => {
     if (isValid && !loading) {
       setLoading(true);
       try {
-        // Save name and age to AsyncStorage
+        // Save name to AsyncStorage
         await AsyncStorage.setItem('userName', name);
-        await AsyncStorage.setItem('userAge', age);
 
         navigation.navigate('SignUpScreen');
       } catch (error) {
@@ -550,10 +550,10 @@ function FinalScreen({ navigation }) {
 
           {/* Title Section */}
           <Text style={styles.finalTitle}>
-            Finally
+            Almost There!
           </Text>
           <Text style={styles.finalSubtitle}>
-            A little more about you
+            What should we call you?
           </Text>
 
           {/* Input Fields */}
@@ -566,18 +566,6 @@ function FinalScreen({ navigation }) {
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
-              />
-            </View>
-
-            <View style={styles.finalInputWrapper}>
-              <TextInput
-                style={styles.finalTextInput}
-                placeholder="Age"
-                placeholderTextColor="#666"
-                value={age}
-                onChangeText={setAge}
-                keyboardType="number-pad"
-                maxLength={3}
               />
             </View>
           </View>
@@ -613,18 +601,21 @@ const GoogleIcon = () => (
 );
 
 // 11. Sign Up Screen - Email/Password form
-function SignUpScreen({ navigation }) {
+function SignUpScreen({ navigation, parentNavigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { register, signInWithGoogle, signInWithApple, loading } = useAuth();
+  const { register, signInWithGoogle, signInWithApple, loading, error, clearError } = useAuth();
   const [localError, setLocalError] = useState('');
 
   useEffect(() => {
     saveOnboardingProgress('SignUpScreen');
-  }, []);
+    // Clear any previous OAuth errors when screen mounts
+    clearError();
+    setLocalError('');
+  }, [clearError]);
 
   // Custom back handler to ensure proper navigation
   const handleBack = () => {
@@ -701,12 +692,9 @@ function SignUpScreen({ navigation }) {
       console.log('📧 Email Sign Up with:', email);
       const success = await register(email, password);
       if (success) {
-        console.log('✅ Email Sign Up successful');
-        // DON'T clear onboarding progress yet!
-        // Keep it in case user needs to go back to fix email
-        // It will be cleared after email is verified
-        console.log('📝 Keeping onboarding progress for potential "wrong email" recovery');
-        console.log('🎯 Waiting for App.js to route to EmailVerificationScreen...');
+        console.log('✅ Email Sign Up successful - navigating to verification screen');
+        // Navigate to EmailVerificationScreen within Onboarding navigator
+        navigation.navigate('EmailVerificationScreen', { email });
       }
     } catch (error) {
       console.error('Email sign up error:', error);
@@ -738,9 +726,9 @@ function SignUpScreen({ navigation }) {
             This will let you save your progress.
           </Text>
 
-          {localError ? (
+          {(error || localError) ? (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{localError}</Text>
+              <Text style={styles.errorText}>{error?.message || localError}</Text>
             </View>
           ) : null}
 
@@ -751,7 +739,14 @@ function SignUpScreen({ navigation }) {
                 placeholder="Email"
                 placeholderTextColor="#666"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  // Clear errors when user starts typing
+                  if (error || localError) {
+                    clearError();
+                    setLocalError('');
+                  }
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -763,7 +758,14 @@ function SignUpScreen({ navigation }) {
                 placeholder="Password"
                 placeholderTextColor="#666"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  // Clear errors when user starts typing
+                  if (error || localError) {
+                    clearError();
+                    setLocalError('');
+                  }
+                }}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity
@@ -785,7 +787,14 @@ function SignUpScreen({ navigation }) {
                 placeholder="Confirm Password"
                 placeholderTextColor="#666"
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  // Clear errors when user starts typing
+                  if (error || localError) {
+                    clearError();
+                    setLocalError('');
+                  }
+                }}
                 secureTextEntry={!showConfirmPassword}
               />
               <TouchableOpacity
@@ -1251,6 +1260,8 @@ const Stack = createNativeStackNavigator();
 export default function OnboardingNavigator({ parentNavigation, initialRoute }) {
   const [initialRouteName, setInitialRouteName] = useState(initialRoute || 'DenominationScreen');
 
+  console.log('🎯 OnboardingNavigator initialRoute:', initialRoute || 'DenominationScreen');
+
   useEffect(() => {
     // If no initial route passed, check AsyncStorage for saved progress
     if (!initialRoute) {
@@ -1320,7 +1331,14 @@ export default function OnboardingNavigator({ parentNavigation, initialRoute }) 
         />
         <Stack.Screen
           name="SignUpScreen"
-          component={SignUpScreen}
+        >
+          {(props) => <SignUpScreen {...props} parentNavigation={parentNavigation} />}
+        </Stack.Screen>
+        <Stack.Screen
+          name="EmailVerificationScreen"
+          component={EmailVerificationScreen}
+          options={{ gestureEnabled: false }} // Prevent swiping back
+          initialParams={{ email: '' }} // Will be overridden when navigated with params
         />
       </Stack.Navigator>
     </ErrorBoundary>

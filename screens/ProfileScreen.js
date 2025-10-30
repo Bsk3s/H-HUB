@@ -8,14 +8,17 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import BackButton from '../components/ui/BackButton';
 import { useAuth } from '../src/auth/context';
+import { getUserStats } from '../src/services/profileStats';
 // TODO: Import these services when we implement them
 // import { getUserProfile } from '../src/auth/services/profile-service';
 // import { getCompleteUserProfile, migrateAsyncStorageToDatabase } from '../src/auth/services/onboarding-service';
 
 export default function ProfileScreen({ navigation }) {
   const { user } = useAuth();
+  const isFocused = useIsFocused();
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState({
     currentStreak: 0,
@@ -29,16 +32,16 @@ export default function ProfileScreen({ navigation }) {
   });
   const [loading, setLoading] = useState(true);
 
+  // Fetch data when screen is focused or user changes
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && isFocused) {
       fetchProfileData();
     }
-  }, [user?.id]);
+  }, [user?.id, isFocused]);
 
   const fetchProfileData = async () => {
     try {
-      // TODO: Implement actual profile data fetching
-      // For now, use mock data
+      // Fetch user profile
       setProfile({
         name: user?.email?.split('@')[0] || 'User',
         age: null,
@@ -46,17 +49,25 @@ export default function ProfileScreen({ navigation }) {
         speech_time: null
       });
 
+      // Fetch spiritual data (TODO: from database)
       setSpiritualData({
         denomination: { label: 'Non-Denominational' },
         spiritualJourney: { id: 2 },
         faithChallenges: [],
       });
 
-      setStats({
-        currentStreak: 5,
-        bestStreak: 12,
-        totalDays: 45,
-      });
+      // ✨ Fetch LIVE stats from activity data
+      if (user?.id) {
+        const liveStats = await getUserStats(user.id);
+        setStats(liveStats);
+        console.log('✅ Live stats loaded:', liveStats);
+      } else {
+        setStats({
+          currentStreak: 0,
+          bestStreak: 0,
+          totalDays: 0,
+        });
+      }
 
     } catch (error) {
       console.error('Error fetching profile data:', error);
@@ -107,20 +118,20 @@ export default function ProfileScreen({ navigation }) {
 
   const getSpiritualJourneyText = (journey) => {
     if (!journey) return 'Not set';
-    
+
     const journeyTexts = {
       1: "Exploring faith and looking for guidance",
       2: "Believe in God but struggle to stay consistent",
       3: "Actively growing but want deeper understanding",
       4: "Have strong faith and want to stay spiritually sharp",
     };
-    
+
     return journeyTexts[journey.id] || 'Not set';
   };
 
   const getFaithChallengesText = (challenges) => {
     if (!challenges || challenges.length === 0) return 'None selected';
-    
+
     const challengeTexts = {
       1: "Finding time to read the Bible consistently",
       2: "Understanding scripture in a way that applies to life",
@@ -128,7 +139,7 @@ export default function ProfileScreen({ navigation }) {
       4: "Feeling distant from God or struggling to hear His voice",
       5: "Not knowing where to start when studying the Bible",
     };
-    
+
     return challenges.map(c => challengeTexts[c.id] || 'Unknown').join(', ');
   };
 
@@ -170,7 +181,7 @@ export default function ProfileScreen({ navigation }) {
               </Text>
             </View>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleEditProfile}
             style={styles.editButton}
           >
@@ -181,21 +192,21 @@ export default function ProfileScreen({ navigation }) {
         {/* Spiritual Identity Section */}
         <View style={styles.spiritualSection}>
           <Text style={styles.sectionTitle}>Spiritual Identity</Text>
-          
+
           <View style={styles.spiritualItem}>
             <Text style={styles.spiritualLabel}>Denomination</Text>
             <Text style={styles.spiritualValue}>
               {spiritualData.denomination?.label || 'Not set'}
             </Text>
           </View>
-          
+
           <View style={styles.spiritualItem}>
             <Text style={styles.spiritualLabel}>Spiritual Journey</Text>
             <Text style={styles.spiritualValue}>
               {getSpiritualJourneyText(spiritualData.spiritualJourney)}
             </Text>
           </View>
-          
+
           <View style={styles.spiritualItem}>
             <Text style={styles.spiritualLabel}>Faith Challenges</Text>
             <Text style={styles.spiritualValue}>
@@ -207,7 +218,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Achievements Section */}
         <View style={styles.achievementsSection}>
           <Text style={styles.sectionTitle}>Achievements</Text>
-          
+
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <View style={[styles.statIcon, styles.orangeIcon]}>
@@ -216,7 +227,7 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.statNumber}>{stats.currentStreak}</Text>
               <Text style={styles.statLabel}>Current Streak</Text>
             </View>
-            
+
             <View style={styles.statItem}>
               <View style={[styles.statIcon, styles.yellowIcon]}>
                 <Text style={styles.statIconText}>🥇</Text>
@@ -224,7 +235,7 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.statNumber}>{stats.bestStreak}</Text>
               <Text style={styles.statLabel}>Best Streak</Text>
             </View>
-            
+
             <View style={styles.statItem}>
               <View style={[styles.statIcon, styles.greenIcon]}>
                 <Text style={styles.statIconText}>📅</Text>
@@ -238,8 +249,8 @@ export default function ProfileScreen({ navigation }) {
         {/* Account Section */}
         <View style={styles.accountSection}>
           <Text style={styles.sectionTitle}>Account</Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             onPress={handleChangePassword}
             style={styles.accountItem}
           >
@@ -249,17 +260,17 @@ export default function ProfileScreen({ navigation }) {
             </View>
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.accountItem}>
             <Text style={styles.accountLabel}>Connected Accounts</Text>
             <Text style={styles.accountValue}>
-              {user?.app_metadata?.provider ? 
+              {user?.app_metadata?.provider ?
                 (user.app_metadata.provider === 'email' ? 'Email' : user.app_metadata.provider.charAt(0).toUpperCase() + user.app_metadata.provider.slice(1))
                 : 'Email'}
             </Text>
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             onPress={handleAccountSettings}
             style={styles.accountItem}
           >

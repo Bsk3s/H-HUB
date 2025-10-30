@@ -1,24 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import SpiritualAPI from '../../services/api';
+import { Room } from 'livekit-client';
+import { AudioSession, registerGlobals } from '@livekit/react-native';
 
-// Conditionally import LiveKit based on environment
-let Room, AudioSession, registerGlobals;
-const IS_PRODUCTION = process.env.EXPO_NO_DEV_CLIENT === '1';
-
-if (!IS_PRODUCTION) {
-  try {
-    const livekit = require('livekit-client');
-    const rnLivekit = require('@livekit/react-native');
-    Room = livekit.Room;
-    AudioSession = rnLivekit.AudioSession;
-    registerGlobals = rnLivekit.registerGlobals;
-
-    // Register globals for LiveKit
-    registerGlobals();
-  } catch (error) {
-    console.log('LiveKit not available:', error.message);
-  }
-}
+// Register globals for LiveKit
+registerGlobals();
 
 export function useLiveKitVoiceChat() {
   const [conversationState, setConversationState] = useState('idle');
@@ -43,13 +29,11 @@ export function useLiveKitVoiceChat() {
   const statusText = conversationState === 'connecting' ? 'Connecting...' :
     conversationState === 'connected' ? 'Connected' :
       conversationState === 'error' ? 'Error' :
-        hasError ? 'Error' :
-          IS_PRODUCTION ? 'LiveKit Disabled (Production)' : 'Disconnected';
+        hasError ? 'Error' : 'Disconnected';
   const statusColor = conversationState === 'connecting' ? '#FF9800' :
     conversationState === 'connected' ? '#4CAF50' :
       conversationState === 'error' ? '#F44336' :
-        hasError ? '#F44336' :
-          IS_PRODUCTION ? '#9E9E9E' : '#9E9E9E';
+        hasError ? '#F44336' : '#9E9E9E';
 
   useEffect(() => {
     if (initialized.current) return;
@@ -69,20 +53,6 @@ export function useLiveKitVoiceChat() {
   }, [user]);
 
   const startVoiceChat = async (character = 'Adina') => {
-    if (IS_PRODUCTION) {
-      console.log('⚠️ LiveKit is disabled in production builds - using stub mode');
-      setError('Voice chat is not available in this build');
-      setConversationState('error');
-      return;
-    }
-
-    if (!Room || !AudioSession) {
-      console.log('LiveKit modules not available');
-      setError('LiveKit modules not available');
-      setConversationState('error');
-      return;
-    }
-
     try {
       setConversationState('connecting');
       setError(null);
@@ -187,9 +157,7 @@ export function useLiveKitVoiceChat() {
         roomRef.current = null;
       }
 
-      if (!IS_PRODUCTION && AudioSession) {
-        await AudioSession.stopAudioSession();
-      }
+      await AudioSession.stopAudioSession();
 
       setConversationState('idle');
       setIsConnected(false);
@@ -209,11 +177,6 @@ export function useLiveKitVoiceChat() {
   };
 
   const toggleListening = async () => {
-    if (IS_PRODUCTION) {
-      console.log('LiveKit is disabled in production builds.');
-      return;
-    }
-
     if (!roomRef.current) {
       console.log('❌ No active room connection');
       return;
@@ -233,12 +196,6 @@ export function useLiveKitVoiceChat() {
   };
 
   const sendTextMessage = async (message) => {
-    if (IS_PRODUCTION) {
-      console.log('LiveKit is disabled in production builds.');
-      setError('Cannot send message: LiveKit is disabled in production builds.');
-      return;
-    }
-
     if (!roomRef.current || !conversationId) {
       console.log('❌ No active conversation');
       setError('No active conversation');

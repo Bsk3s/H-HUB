@@ -39,8 +39,8 @@ const AppHeader = ({ navigation }) => {
             setIsMenuOpen(false);
             const success = await logout();
             if (success) {
-                console.log('✅ Logout successful - navigating to Landing');
-                navigation.navigate('Landing');
+                console.log('✅ Logout successful - App.js will handle navigation automatically');
+                // Navigation happens automatically via App.js when user becomes null
             }
         } catch (error) {
             console.error('Logout error:', error);

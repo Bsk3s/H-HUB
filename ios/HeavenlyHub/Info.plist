@@ -39,7 +39,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>200</string>
+    <string>245</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
@@ -51,14 +51,14 @@
       <key>NSAllowsArbitraryLoads</key>
       <false/>
       <key>NSAllowsLocalNetworking</key>
-      <true/>
+      <false/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>This app uses the camera for video calls</string>
+    <string>Heavenly Hub uses your camera to capture photos for personalizing your profile and sharing faith-based content with your community.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>This app uses the microphone for voice calls</string>
+    <string>Your microphone enables voice conversations with our AI spiritual guide, voice-to-text prayers, and interactive Bible study discussions to deepen your faith journey.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your photos</string>
+    <string>Access your photo library to personalize your profile picture, add meaningful images to your journal entries, and share inspirational content.</string>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
@@ -85,5 +85,10 @@
     <string>Light</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+      <string>applinks:app.a-heavenlyhub.com</string>
+      <string>webcredentials:app.a-heavenlyhub.com</string>
+    </array>
   </dict>
 </plist>

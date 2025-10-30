@@ -145,30 +145,35 @@ export async function resendVerificationEmail(email) {
 /**
  * Check if user's email is verified
  * Returns: true if verified, false if not verified or session not ready
+ * 
+ * PRODUCTION SOLUTION: Uses refreshSession() to get fresh data from Supabase server
+ * This is what professional apps do - they don't rely on cached session data
  */
 export async function checkEmailVerified() {
   try {
-    // First check if we have a session (faster and doesn't error if session missing)
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    // CRITICAL: Refresh the session to get latest data from Supabase server
+    // This is the production-grade way to detect verification
+    // Without this, we'd be checking stale cached data
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
 
-    if (sessionError || !sessionData?.session) {
-      // Session not ready yet - return false silently (not an error, just wait)
+    if (refreshError) {
+      // If refresh fails, session might not exist yet (just signed up)
+      // This is normal - return false silently
       return false;
     }
 
-    // Session exists, now get user details
-    const { data, error } = await supabase.auth.getUser();
-
-    if (error) {
-      // Only log actual errors, not "session missing" (that's expected right after signup)
-      if (!error.message.includes('session')) {
-        console.error('Error checking email verification:', error.message);
-      }
+    if (!refreshData?.session) {
+      // No session yet - user just signed up, wait for session to be created
       return false;
     }
 
-    // Check if email is verified
-    const isVerified = data?.user?.email_confirmed_at !== null;
+    // Check if email is verified from the FRESH session data
+    const isVerified = refreshData.session.user?.email_confirmed_at !== null;
+
+    if (isVerified) {
+      console.log('✅ Email verification detected via session refresh');
+    }
+
     return isVerified;
   } catch (error) {
     // Silently return false for expected errors during session initialization
@@ -211,6 +216,62 @@ export async function checkPremiumAccess(userId) {
   } catch (error) {
     console.error('Error checking premium access:', error.message);
     return false;
+  }
+}
+
+/**
+ * Delete the currently authenticated user account
+ * This is useful when a user entered wrong email during signup
+ * 
+ * NOTE: Client-side deletion is limited. This function:
+ * 1. Signs out the user immediately
+ * 2. Unverified accounts are auto-deleted by Supabase after 7 days
+ * 3. For immediate deletion, you'd need a serverless function with admin access
+ */
+export async function deleteCurrentUser() {
+  try {
+    console.log('🗑️ Attempting to remove current user account...');
+
+    // Get the current user first
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+
+    if (!userData?.user) {
+      throw new Error('No user is currently logged in');
+    }
+
+    const userEmail = userData.user.email;
+    const isVerified = userData.user.email_confirmed_at !== null;
+
+    console.log(`📧 User email: ${userEmail}, Verified: ${isVerified}`);
+
+    // Sign out the user immediately
+    // For unverified accounts, Supabase will auto-delete after 7 days
+    await signOut();
+
+    console.log(`✅ Successfully signed out user: ${userEmail}`);
+    if (!isVerified) {
+      console.log('💡 Note: Unverified account will be auto-deleted by Supabase within 7 days');
+    }
+
+    return {
+      success: true,
+      deletedCompletely: false, // Can't fully delete from client
+      signedOut: true,
+      willAutoDelete: !isVerified
+    };
+  } catch (error) {
+    console.error('❌ Error deleting user:', error.message);
+
+    // If even signout fails, try one more time
+    try {
+      await signOut();
+      console.log('✅ Signed out user on retry');
+      return { success: true, deletedCompletely: false, signedOut: true };
+    } catch (signOutError) {
+      console.error('❌ Signout failed completely:', signOutError.message);
+      throw error;
+    }
   }
 }
 

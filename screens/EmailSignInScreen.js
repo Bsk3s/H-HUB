@@ -8,8 +8,8 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import BackButton from '../components/ui/BackButton';
 import Button from '../components/ui/Button';
 import { useAuth } from '../src/auth/context';
@@ -17,7 +17,8 @@ import { useAuth } from '../src/auth/context';
 export default function EmailSignInScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, loading, error } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, loading, error, clearError } = useAuth();
   const [localError, setLocalError] = useState('');
 
   const handleBack = () => {
@@ -31,27 +32,34 @@ export default function EmailSignInScreen({ navigation }) {
   const handleSignIn = async () => {
     if (!email || !password) {
       setLocalError('Please fill in all fields');
+      console.log('❌ Validation error: Empty fields');
       return;
     }
 
     setLocalError('');
+    console.log('🔑 Attempting to sign in...');
     try {
       const success = await login(email, password);
       if (success) {
-        console.log('✅ Email Sign In successful - AppStack will be rendered automatically');
-        // Auth context will automatically switch to AppStack
-        // No need to manually navigate
+        console.log('✅ Email Sign In successful');
+        // Clear the inputs immediately to prevent them from showing during transition
+        setEmail('');
+        setPassword('');
+        // App.js will handle routing to PaywallScreen or HomeScreen automatically
+      } else {
+        console.log('❌ Login returned false - check error state');
+        console.log('Auth context error:', error);
+        console.log('Local error:', localError);
       }
     } catch (err) {
-      console.error('Email sign in error:', err);
+      console.error('❌ Email sign in error caught in component:', err);
       setLocalError(err.message || 'Failed to sign in');
     }
   };
 
   const handleForgotPassword = () => {
-    // TODO: Navigate to forgot password screen
-    console.log('🔄 Forgot Password pressed - TODO: Create ForgotPasswordScreen');
-    Alert.alert('Coming Soon', 'Forgot password feature will be available soon.');
+    console.log('🔄 Forgot Password pressed - navigating to ForgotPasswordScreen');
+    navigation.navigate('ForgotPassword');
   };
 
   const handleSignUp = () => {
@@ -77,6 +85,13 @@ export default function EmailSignInScreen({ navigation }) {
             </Text>
           </View>
 
+          {/* Error Message Display - Prominent position */}
+          {(error || localError) && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error?.message || localError}</Text>
+            </View>
+          )}
+
           <View style={styles.formSection}>
             <View style={styles.inputContainer}>
               <TextInput
@@ -84,7 +99,14 @@ export default function EmailSignInScreen({ navigation }) {
                 placeholder="Email"
                 placeholderTextColor="#666"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  // Clear errors when user starts typing
+                  if (error || localError) {
+                    clearError();
+                    setLocalError('');
+                  }
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -93,14 +115,32 @@ export default function EmailSignInScreen({ navigation }) {
 
             <View style={styles.inputContainer}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { paddingRight: 50 }]}
                 placeholder="Password"
                 placeholderTextColor="#666"
                 value={password}
-                onChangeText={setPassword}
-                secureTextEntry
+                onChangeText={(text) => {
+                  setPassword(text);
+                  // Clear errors when user starts typing
+                  if (error || localError) {
+                    clearError();
+                    setLocalError('');
+                  }
+                }}
+                secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowPassword(!showPassword)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={24}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -109,11 +149,6 @@ export default function EmailSignInScreen({ navigation }) {
               Forgot password?
             </Text>
           </TouchableOpacity>
-
-          {/* Show error */}
-          {(error || localError) && (
-            <Text style={styles.errorText}>{error?.message || localError}</Text>
-          )}
 
           <View style={styles.buttonSection}>
             <Button
@@ -171,12 +206,23 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   textInput: {
+    flex: 1,
     height: 56,
     paddingHorizontal: 20,
     fontSize: 16,
     color: '#374151',
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 16,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
   },
   forgotPasswordContainer: {
     marginTop: 16,
@@ -186,11 +232,13 @@ const styles = StyleSheet.create({
     color: '#2563EB',
     fontWeight: '600',
   },
+  errorContainer: {
+    marginBottom: 16,
+  },
   errorText: {
-    color: '#ef4444',
-    textAlign: 'center',
-    marginTop: 8,
+    color: '#DC2626',
     fontSize: 14,
+    lineHeight: 20,
   },
   buttonSection: {
     marginTop: 'auto',

@@ -12,6 +12,14 @@ module.exports = function (api) {
         },
         "extensions": [".tsx", ".ts", ".js", ".json"]
       }],
+      ["module:react-native-dotenv", {
+        "envName": "APP_ENV",
+        "moduleName": "@env",
+        "path": ".env",
+        "safe": false,
+        "allowUndefined": true,
+        "verbose": false
+      }],
       'react-native-reanimated/plugin', // MUST be last
     ],
   };

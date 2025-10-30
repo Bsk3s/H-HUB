@@ -29,19 +29,8 @@ export default function LandingScreen({ navigation }) {
 
   useEffect(() => {
     checkAuthStatus();
-    checkReturnToSignUp();
     checkOnboardingProgress();
   }, [initializing, user]); // React to auth state changes
-
-  // Also check returnToSignUp flag whenever screen comes into focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      console.log('👀 LandingScreen focused - checking returnToSignUp flag');
-      checkReturnToSignUp();
-    });
-
-    return unsubscribe;
-  }, [navigation]);
 
   const checkOnboardingProgress = async () => {
     try {
@@ -59,24 +48,6 @@ export default function LandingScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Error checking onboarding progress:', error);
-    }
-  };
-
-  const checkReturnToSignUp = async () => {
-    try {
-      const shouldReturn = await AsyncStorage.getItem('returnToSignUp');
-      if (shouldReturn === 'true') {
-        console.log('🔄 Returning to onboarding after wrong email');
-        // Clear the flag
-        await AsyncStorage.removeItem('returnToSignUp');
-        // Navigate to Onboarding without specifying screen
-        // OnboardingNavigator will load SignUpScreen from saved progress
-        // and the stack will have all previous screens, so back button works
-        navigation.navigate('Onboarding');
-        console.log('📝 Navigated to Onboarding - will resume at SignUpScreen with full stack');
-      }
-    } catch (error) {
-      console.error('Error checking returnToSignUp flag:', error);
     }
   };
 

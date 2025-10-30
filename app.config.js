@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+import 'dotenv/config';
+
 const IS_PRODUCTION = process.env.EXPO_NO_DEV_CLIENT === '1';
 
 export default {
@@ -9,6 +12,8 @@ export default {
         "icon": "./assets/HB.png",
         "userInterfaceStyle": "light",
         "newArchEnabled": false,
+        "privacy": "public",
+        "privacyPolicyUrl": "https://a-heavenlyhub.com/privacy",
         "splash": {
             "image": "./assets/images/HBMAIN1.png",
             "resizeMode": "contain",
@@ -17,12 +22,13 @@ export default {
         "ios": {
             "supportsTablet": true,
             "bundleIdentifier": IS_PRODUCTION ? "com.bsk3s.heavenlyhub" : "com.bsk3s.heavenlyhub.dev",
-            "buildNumber": "207",
+            "buildNumber": "245",
             "jsEngine": "hermes",
             "infoPlist": {
                 "ITSAppUsesNonExemptEncryption": false,
-                "NSCameraUsageDescription": "This app uses the camera for video calls",
-                "NSMicrophoneUsageDescription": "This app uses the microphone for voice calls",
+                "NSCameraUsageDescription": "Heavenly Hub uses your camera to capture photos for personalizing your profile and sharing faith-based content with your community.",
+                "NSMicrophoneUsageDescription": "Your microphone enables voice conversations with our AI spiritual guide, voice-to-text prayers, and interactive Bible study discussions to deepen your faith journey.",
+                "NSPhotoLibraryUsageDescription": "Access your photo library to personalize your profile picture, add meaningful images to your journal entries, and share inspirational content.",
                 "CFBundleURLTypes": [
                     {
                         "CFBundleURLName": "com.bsk3s.heavenlyhub",
@@ -121,8 +127,10 @@ export default {
             "eas": {
                 "projectId": "a858d93a-8c2b-48aa-8c5c-2ac5f8411618"
             },
-            "bibleApiKey": "c9afcb2ed06b4d336db834d2e03526cf",
-            "apiUrl": "https://livekit-voice-agent-0jz0.onrender.com"
+            "bibleApiKey": process.env.EXPO_PUBLIC_BIBLE_API_KEY,
+            "apiUrl": process.env.EXPO_PUBLIC_API_URL,
+            "supabaseUrl": process.env.EXPO_PUBLIC_SUPABASE_URL,
+            "supabaseAnonKey": process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
         },
         "owner": "bstr",
         "developer": {

@@ -15,9 +15,13 @@ import { ensureUserProfile } from './services/profile-service';
 // Create a context for authentication
 const AuthContext = createContext(null);
 
+// Import auth status constants
+import { AUTH_STATUS } from './services/auth-initialization';
+
 // AuthProvider component to wrap your app
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [authState, setAuthState] = useState(null);
   const [initializing, setInitializing] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -49,11 +53,32 @@ const AuthProvider = ({ children }) => {
         console.log('🔔 Auth state changed:', event);
       }
 
-      // ✅ Update user state for any session that exists
+      // ✅ Update user state AND authState for any session that exists
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
         if (session?.user) {
           console.log('✅ User authenticated:', session.user.email);
           setUser(session.user);
+
+          // Also update authState from listener to prevent double renders
+          const isVerified = !!session.user.email_confirmed_at;
+          if (!isVerified) {
+            setAuthState({
+              status: AUTH_STATUS.AUTHENTICATED_UNVERIFIED,
+              user: session.user,
+              isVerified: false,
+              hasPremiumAccess: false,
+              hasSubscription: false,
+            });
+          } else {
+            setAuthState({
+              status: AUTH_STATUS.AUTHENTICATED_NO_ACCESS,
+              user: session.user,
+              isVerified: true,
+              hasPremiumAccess: false,
+              hasSubscription: false,
+            });
+          }
+
           // Set auth flag in AsyncStorage
           AsyncStorage.setItem('isAuthenticated', 'true');
         }
@@ -61,6 +86,13 @@ const AuthProvider = ({ children }) => {
         // Only log out on explicit SIGNED_OUT event
         console.log('🚪 User explicitly signed out');
         setUser(null);
+        setAuthState({
+          status: AUTH_STATUS.UNAUTHENTICATED,
+          user: null,
+          isVerified: false,
+          hasPremiumAccess: false,
+          hasSubscription: false,
+        });
         // Clear auth flag in AsyncStorage
         AsyncStorage.setItem('isAuthenticated', 'false');
       }
@@ -167,16 +199,54 @@ const AuthProvider = ({ children }) => {
         console.log('✅ Login successful for user:', authUser.email);
         // Ensure user profile exists
         await ensureUserProfile(authUser.id);
+
+        // Set user state immediately
+        setUser(authUser);
+
+        // Set authState immediately at the same time
+        const isVerified = !!authUser.email_confirmed_at;
+        if (!isVerified) {
+          setAuthState({
+            status: AUTH_STATUS.AUTHENTICATED_UNVERIFIED,
+            user: authUser,
+            isVerified: false,
+            hasPremiumAccess: false,
+            hasSubscription: false,
+          });
+        } else {
+          setAuthState({
+            status: AUTH_STATUS.AUTHENTICATED_NO_ACCESS,
+            user: authUser,
+            isVerified: true,
+            hasPremiumAccess: false,
+            hasSubscription: false,
+          });
+        }
+
         // Set auth flag in AsyncStorage
         await AsyncStorage.setItem('isAuthenticated', 'true');
-        console.log('💾 isAuthenticated set in AsyncStorage');
+        console.log('💾 User and authState updated together - smooth transition!');
       }
 
       return true;
     } catch (err) {
       console.error('❌ Login error:', err);
+
+      // Provide user-friendly error messages
+      let friendlyMessage = 'Failed to sign in. Please try again.';
+
+      if (err.message?.includes('Invalid login credentials')) {
+        friendlyMessage = 'Incorrect email or password. Please check and try again.';
+      } else if (err.message?.includes('Email not confirmed')) {
+        friendlyMessage = 'Please verify your email address before signing in.';
+      } else if (err.message?.includes('User not found')) {
+        friendlyMessage = 'No account found with this email. Please sign up first.';
+      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        friendlyMessage = 'Network error. Please check your connection and try again.';
+      }
+
       setError({
-        message: err.message || 'Failed to sign in'
+        message: friendlyMessage
       });
       return false;
     } finally {
@@ -212,8 +282,22 @@ const AuthProvider = ({ children }) => {
       return true;
     } catch (err) {
       console.error('❌ Registration error:', err);
+
+      // Provide user-friendly error messages
+      let friendlyMessage = 'Failed to create account. Please try again.';
+
+      if (err.message?.includes('User already registered')) {
+        friendlyMessage = 'An account with this email already exists. Please sign in instead.';
+      } else if (err.message?.includes('Password should be at least')) {
+        friendlyMessage = 'Password must be at least 6 characters long.';
+      } else if (err.message?.includes('Invalid email')) {
+        friendlyMessage = 'Please enter a valid email address.';
+      } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        friendlyMessage = 'Network error. Please check your connection and try again.';
+      }
+
       setError({
-        message: err.message || 'Failed to create account'
+        message: friendlyMessage
       });
       return false;
     } finally {
@@ -236,7 +320,7 @@ const AuthProvider = ({ children }) => {
         console.log('👤 Existing user:', existingSession.session.user.email);
       }
 
-      // For EAS builds, always use the production scheme
+      // Use app scheme for Google Sign-In (Supabase will handle the callback)
       const redirectUrl = 'com.bsk3s.heavenlyhub://auth/callback';
       console.log('🔗 Using redirectTo:', redirectUrl);
 
@@ -354,7 +438,7 @@ const AuthProvider = ({ children }) => {
         console.log('Existing user:', existingSession.session.user.email);
       }
 
-      // For EAS builds, always use the production scheme
+      // Use app scheme for Apple Sign-In (Supabase will handle the callback)
       const redirectUrl = 'com.bsk3s.heavenlyhub://auth/callback';
       console.log('🔗 Using redirectTo:', redirectUrl);
 
@@ -536,6 +620,8 @@ const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        authState,
+        setAuthState,
         initializing,
         loading,
         error,

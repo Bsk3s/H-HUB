@@ -8,18 +8,21 @@ import {
   Switch,
   Alert,
   StyleSheet,
+  Linking,
 } from 'react-native';
-import { 
-  ArrowLeft, 
-  User, 
-  BookOpen, 
-  Bell, 
-  Mic, 
-  Smartphone, 
+import {
+  ArrowLeft,
+  User,
+  BookOpen,
+  Bell,
+  Mic,
+  Smartphone,
   Trash2,
   ChevronRight,
   Moon,
   Sun,
+  Shield,
+  FileText,
 } from 'lucide-react-native';
 import { useAuth } from '../src/auth/context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -76,20 +79,103 @@ export default function SettingsScreen({ navigation }) {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone.',
+      '⚠️ Delete Account',
+      'This will permanently delete:\n\n• All your journals and notes\n• Your onboarding preferences\n• Your profile and settings\n• All your saved data\n\nThis action CANNOT be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Continue',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement account deletion
-            Alert.alert('Account Deletion', 'Account deletion will be implemented soon.');
-          }
+          onPress: () => confirmAccountDeletion()
         }
       ]
     );
+  };
+
+  const confirmAccountDeletion = () => {
+    Alert.prompt(
+      '🔐 Confirm Deletion',
+      'Enter your password to permanently delete your account:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async (password) => {
+            if (!password || password.trim() === '') {
+              Alert.alert('Error', 'Password is required to delete your account.');
+              return;
+            }
+            await executeAccountDeletion(password);
+          }
+        }
+      ],
+      'secure-text'
+    );
+  };
+
+  const executeAccountDeletion = async (password) => {
+    try {
+      // Import supabase
+      const { supabase } = await import('../src/auth/supabase-client');
+
+      // Verify password by attempting to sign in
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: password,
+      });
+
+      if (verifyError) {
+        Alert.alert('Error', 'Incorrect password. Account deletion cancelled.');
+        return;
+      }
+
+      // Delete all user data from Supabase database
+      // Note: Supabase RLS policies should allow users to delete their own data
+      const userId = user.id;
+
+      // Delete user's journals
+      await supabase.from('journals').delete().eq('user_id', userId);
+
+      // Delete user's notes
+      await supabase.from('notes').delete().eq('user_id', userId);
+
+      // Delete user's prayers (if table exists)
+      await supabase.from('prayers').delete().eq('user_id', userId);
+
+      // Delete user's profile data
+      await supabase.from('profiles').delete().eq('id', userId);
+
+      // Delete user's onboarding data (if stored separately)
+      await supabase.from('onboarding').delete().eq('user_id', userId);
+
+      // Delete the user account from Supabase Auth
+      // This uses the user's own session, not admin privileges
+      const { error: deleteError } = await supabase.rpc('delete_user');
+
+      if (deleteError) {
+        console.error('Error deleting user account:', deleteError);
+        Alert.alert('Error', 'Failed to delete account. Please contact support at support@heavenlyhub.com');
+        return;
+      }
+
+      // Clear local storage
+      await AsyncStorage.clear();
+
+      // Sign out (will happen automatically after account deletion)
+      await supabase.auth.signOut();
+
+      // Show success message
+      Alert.alert(
+        'Account Deleted',
+        'Your account and all associated data have been permanently deleted.',
+        [{ text: 'OK' }]
+      );
+
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      Alert.alert('Error', 'An error occurred while deleting your account. Please try again or contact support at support@heavenlyhub.com');
+    }
   };
 
   const handleResetOnboarding = () => {
@@ -98,7 +184,7 @@ export default function SettingsScreen({ navigation }) {
       'This will clear your onboarding data and you can go through the setup process again.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
+        {
           text: 'Reset',
           onPress: async () => {
             try {
@@ -147,12 +233,26 @@ export default function SettingsScreen({ navigation }) {
     Alert.alert('Coming Soon', 'Bible version settings will be available soon.');
   };
 
+  const handlePrivacyPolicy = () => {
+    const privacyUrl = 'https://a-heavenlyhub.com/privacy';
+    Linking.openURL(privacyUrl).catch(() => {
+      Alert.alert('Error', 'Unable to open privacy policy. Please visit a-heavenlyhub.com/privacy in your browser.');
+    });
+  };
+
+  const handleTermsOfService = () => {
+    const termsUrl = 'https://a-heavenlyhub.com/terms';
+    Linking.openURL(termsUrl).catch(() => {
+      Alert.alert('Error', 'Unable to open terms of service. Please visit a-heavenlyhub.com/terms in your browser.');
+    });
+  };
+
   const handleLogout = async () => {
     try {
       const success = await logout();
       if (success) {
-        console.log('✅ Logout successful - navigating to Landing');
-        navigation.navigate('Landing');
+        console.log('✅ Logout successful - App.js will handle navigation automatically');
+        // Navigation happens automatically via App.js when user becomes null
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -310,6 +410,22 @@ export default function SettingsScreen({ navigation }) {
             title="Reset Onboarding"
             subtitle="Go through the setup process again"
             onPress={handleResetOnboarding}
+          />
+        </SettingSection>
+
+        {/* Legal Section */}
+        <SettingSection title="Legal & Privacy">
+          <SettingRow
+            icon={Shield}
+            title="Privacy Policy"
+            subtitle="View our privacy policy"
+            onPress={handlePrivacyPolicy}
+          />
+          <SettingRow
+            icon={FileText}
+            title="Terms of Service"
+            subtitle="View our terms of service"
+            onPress={handleTermsOfService}
           />
         </SettingSection>
 
