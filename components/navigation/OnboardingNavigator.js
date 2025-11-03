@@ -502,7 +502,7 @@ function ShiftScreen({ navigation }) {
 }
 
 // 10. Final Screen - Name input only
-function FinalScreen({ navigation }) {
+function FinalScreen({ navigation, getBackHandler }) {
   const [name, setName] = useState('');
 
   useEffect(() => {
@@ -544,7 +544,7 @@ function FinalScreen({ navigation }) {
             <ProgressHeader
               currentStep={10}
               totalSteps={11}
-              onBack={() => navigation.goBack()}
+              onBack={getBackHandler ? getBackHandler(navigation, 'FinalScreen', 10) : () => navigation.goBack()}
             />
           </View>
 
@@ -601,7 +601,7 @@ const GoogleIcon = () => (
 );
 
 // 11. Sign Up Screen - Email/Password form
-function SignUpScreen({ navigation, parentNavigation }) {
+function SignUpScreen({ navigation, parentNavigation, getBackHandler }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -616,17 +616,6 @@ function SignUpScreen({ navigation, parentNavigation }) {
     clearError();
     setLocalError('');
   }, [clearError]);
-
-  // Custom back handler to ensure proper navigation
-  const handleBack = () => {
-    // Check if we can go back in the stack
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      // No history in stack, manually navigate to FinalScreen
-      navigation.navigate('FinalScreen');
-    }
-  };
 
   const handleAppleSignUp = async () => {
     setLocalError('');
@@ -717,7 +706,7 @@ function SignUpScreen({ navigation, parentNavigation }) {
             <ProgressHeader
               currentStep={11}
               totalSteps={11}
-              onBack={handleBack}
+              onBack={getBackHandler ? getBackHandler(navigation, 'SignUpScreen', 11) : () => navigation.goBack()}
             />
           </View>
 
@@ -1336,12 +1325,13 @@ export default function OnboardingNavigator({ parentNavigation, initialRoute }) 
         </Stack.Screen>
         <Stack.Screen
           name="FinalScreen"
-          component={FinalScreen}
-        />
+        >
+          {(props) => <FinalScreen {...props} getBackHandler={getBackHandler} />}
+        </Stack.Screen>
         <Stack.Screen
           name="SignUpScreen"
         >
-          {(props) => <SignUpScreen {...props} parentNavigation={parentNavigation} />}
+          {(props) => <SignUpScreen {...props} parentNavigation={parentNavigation} getBackHandler={getBackHandler} />}
         </Stack.Screen>
         <Stack.Screen
           name="EmailVerificationScreen"

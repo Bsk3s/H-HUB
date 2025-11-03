@@ -45,7 +45,7 @@ export default function EmailSignInScreen({ navigation }) {
         // Clear the inputs
         setEmail('');
         setPassword('');
-        // Navigate to Paywall screen (single navigator handles this smoothly)
+        // Navigate explicitly - no navigator remount
         navigation.navigate('Paywall');
       } else {
         console.log('❌ Login returned false - check error state');

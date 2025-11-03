@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { LogBox, View, Alert } from 'react-native';
+import { LogBox, View, Alert, AppState } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -18,7 +18,7 @@ import { useTheme } from './src/hooks/useTheme';
 import { migrateJournalsToSupabase } from './services/migrateJournalsToSupabase';
 
 // Import auth initialization
-import { initializeAuth, AUTH_STATUS, clearAuthState } from './src/auth/services/auth-initialization';
+import { initializeAuth, AUTH_STATUS } from './src/auth/services/auth-initialization';
 
 // Keep splash screen visible until we're ready
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -46,7 +46,7 @@ import StoryDetailScreen from './screens/StoryDetailScreen';
 const Stack = createNativeStackNavigator();
 
 // Root Navigator - Single navigator with all screens for smooth transitions
-function RootNavigator() {
+function RootNavigator({ navigationRef }) {
   const { user, logout, authState, setAuthState } = useAuth();
   const { colors } = useTheme();
   const [appIsReady, setAppIsReady] = useState(false);
@@ -83,20 +83,18 @@ function RootNavigator() {
     initializeApp();
   }, []);
 
-  // Listen for logout - when user goes from logged in to logged out
+  // Re-run auth initialization when user changes (login/logout via auth listener)
   useEffect(() => {
-    // Only clear auth state if we had a user and now don't (actual logout)
-    // Don't run on initial mount when both are null
-    if (user === null && authState && authState.status !== AUTH_STATUS.UNAUTHENTICATED && appIsReady) {
-      console.log('🚪 User logged out - re-initializing auth');
-      // Re-run initialization instead of just clearing
-      async function handleLogout() {
-        const authResult = await initializeAuth();
-        setAuthState(authResult);
-      }
-      handleLogout();
+    if (!appIsReady) return; // Don't run until app is ready
+
+    async function handleUserChange() {
+      console.log('👤 User changed, re-initializing auth state...');
+      const authResult = await initializeAuth(user);
+      setAuthState(authResult);
     }
-  }, [user]);
+
+    handleUserChange();
+  }, [user, appIsReady]);
 
   // REMOVED: The useEffect that was causing double renders
   // Now authState updates directly in the login function in AuthContext
@@ -312,6 +310,50 @@ function RootNavigator() {
     }
   }, [authState]);
 
+  // Auto-navigate when auth state changes (after app is ready)
+  useEffect(() => {
+    if (!appIsReady || !authState || !navigationRef.current) {
+      console.log('⏭️ Skipping navigation check:', { appIsReady, hasAuthState: !!authState, hasNavRef: !!navigationRef.current });
+      return;
+    }
+
+    console.log('✅ Navigation check conditions met - checking route...');
+
+    // Determine target screen based on auth status
+    let targetScreen;
+    switch (authState.status) {
+      case AUTH_STATUS.UNAUTHENTICATED:
+        targetScreen = 'Landing';
+        break;
+      case AUTH_STATUS.AUTHENTICATED_UNVERIFIED:
+        targetScreen = 'Onboarding';
+        break;
+      case AUTH_STATUS.AUTHENTICATED_NO_ACCESS:
+        targetScreen = 'Paywall';
+        break;
+      case AUTH_STATUS.AUTHENTICATED_WITH_ACCESS:
+        targetScreen = 'Home';
+        break;
+      default:
+        targetScreen = 'Landing';
+    }
+
+    // Get current screen
+    const currentRoute = navigationRef.current.getCurrentRoute();
+    const currentScreen = currentRoute?.name;
+
+    // Only navigate if we're not already on the target screen
+    if (currentScreen !== targetScreen) {
+      console.log(`🚀 Auto-navigating from ${currentScreen} to ${targetScreen}`);
+      navigationRef.current.reset({
+        index: 0,
+        routes: [{ name: targetScreen }],
+      });
+    } else {
+      console.log(`✅ Already on correct screen: ${currentScreen}`);
+    }
+  }, [authState?.status, appIsReady]); // ✅ Listen to BOTH authState.status AND appIsReady
+
   // Wait for app to be ready (splash screen is showing)
   if (!appIsReady || !authState) {
     console.log('⏳ Waiting for app to be ready...', { appIsReady, authState: !!authState });
@@ -416,6 +458,7 @@ function RootNavigator() {
 }
 
 export default function App() {
+  const navigationRef = useRef(null);
 
   return (
     <SuperwallProvider
@@ -427,8 +470,8 @@ export default function App() {
       <ThemeProvider>
         <FeedbackProvider>
           <AuthProvider>
-            <NavigationContainer>
-              <RootNavigator />
+            <NavigationContainer ref={navigationRef}>
+              <RootNavigator navigationRef={navigationRef} />
             </NavigationContainer>
           </AuthProvider>
         </FeedbackProvider>

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text, TouchableOpacity, SafeAreaView, Linking, ScrollView } from 'react-native';
 import { usePlacement, useSuperwall } from 'expo-superwall';
 import { useAuth } from '../src/auth/context';
+import { updatePremiumAccess } from '../src/auth/services/auth-service';
+import { supabase } from '../src/auth/supabase-client';
 
 export default function PaywallScreen({ navigation }) {
     const { user, logout } = useAuth();
@@ -15,7 +17,7 @@ export default function PaywallScreen({ navigation }) {
         onPresent: (info) => {
             console.log('💰 Paywall Presented:', info);
         },
-        onDismiss: (info, result) => {
+        onDismiss: async (info, result) => {
             console.log('💰 Paywall Dismissed!');
             console.log('💰 Dismiss Info:', JSON.stringify(info, null, 2));
             console.log('💰 Dismiss Result:', JSON.stringify(result, null, 2));
@@ -26,8 +28,24 @@ export default function PaywallScreen({ navigation }) {
 
             // Check if user successfully subscribed
             if (result?.type === 'purchased' || result?.purchased) {
-                console.log('✅ User subscribed! Navigating to app...');
-                // Navigation will be handled by App.js when subscription status changes
+                console.log('✅ User subscribed! Updating Supabase...');
+
+                // Update premium access in Supabase
+                if (user?.id) {
+                    const success = await updatePremiumAccess(user.id, true);
+                    if (success) {
+                        console.log('✅ Premium access updated in Supabase');
+                        console.log('🔄 Refreshing auth session to trigger navigation...');
+
+                        // Refresh the session which will trigger App.js's useEffect to re-check auth
+                        // This will cause the app to detect premium access and navigate to Home
+                        await supabase.auth.refreshSession();
+                        console.log('✅ Session refreshed - App.js should now route to Home');
+                    } else {
+                        console.error('❌ Failed to update premium access');
+                    }
+                }
+
                 return;
             }
 
@@ -248,8 +266,15 @@ export default function PaywallScreen({ navigation }) {
                         style={styles.loginButton}
                         onPress={async () => {
                             console.log('🚪 Authenticated user pressed "Sign out"');
+
+                            // Set dismissed state to prevent paywall from showing
+                            setPaywallDismissed(true);
+
+                            // Logout
                             await logout();
                             console.log('✅ Signed out successfully - navigating to Landing');
+
+                            // Navigate explicitly - no navigator remount
                             navigation.navigate('Landing');
                         }}
                         activeOpacity={0.7}

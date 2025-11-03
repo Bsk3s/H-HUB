@@ -105,8 +105,8 @@ importers:
         specifier: ~17.1.7
         version: 17.1.7(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))
       expo-crypto:
-        specifier: ^15.0.7
-        version: 15.0.7(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))
+        specifier: ^14.1.5
+        version: 14.1.5(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))
       expo-device:
         specifier: ~7.0.1
         version: 7.0.3(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))
@@ -138,8 +138,8 @@ importers:
         specifier: ^0.20.1
         version: 0.20.1(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))
       expo-secure-store:
-        specifier: ~14.1.1
-        version: 14.1.1(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))
+        specifier: ~14.2.4
+        version: 14.2.4(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))
       expo-sharing:
         specifier: ~13.1.1
         version: 13.1.5(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))
@@ -2626,11 +2626,6 @@ packages:
     peerDependencies:
       expo: '*'
 
-  expo-crypto@15.0.7:
-    resolution: {integrity: sha512-FUo41TwwGT2e5rA45PsjezI868Ch3M6wbCZsmqTWdF/hr+HyPcrp1L//dsh/hsrsyrQdpY/U96Lu71/wXePJeg==}
-    peerDependencies:
-      expo: '*'
-
   expo-dev-client@5.2.4:
     resolution: {integrity: sha512-s/N/nK5LPo0QZJpV4aPijxyrzV4O49S3dN8D2fljqrX2WwFZzWwFO6dX1elPbTmddxumdcpczsdUPY+Ms8g43g==}
     peerDependencies:
@@ -2744,8 +2739,8 @@ packages:
     peerDependencies:
       expo: '*'
 
-  expo-secure-store@14.1.1:
-    resolution: {integrity: sha512-uF1A0RJwdDdrdCsnYG1BPRuFKeqhcYTEVPVSs4+UEchb6WBrZQGmiB77Ea496i4dZYwA7AntCiEOkGRxRHOCBQ==}
+  expo-secure-store@14.2.4:
+    resolution: {integrity: sha512-ePaz4fnTitJJZjAiybaVYGfLWWyaEtepZC+vs9ZBMhQMfG5HUotIcVsDaSo3FnwpHmgwsLVPY2qFeryI6AtULw==}
     peerDependencies:
       expo: '*'
 
@@ -8511,11 +8506,6 @@ snapshots:
       base64-js: 1.5.1
       expo: 53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)
 
-  expo-crypto@15.0.7(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)):
-    dependencies:
-      base64-js: 1.5.1
-      expo: 53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)
-
   expo-dev-client@5.2.4(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)):
     dependencies:
       expo: 53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)
@@ -8653,7 +8643,7 @@ snapshots:
       - encoding
       - supports-color
 
-  expo-secure-store@14.1.1(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)):
+  expo-secure-store@14.2.4(expo@53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)):
     dependencies:
       expo: 53.0.23(@babel/core@7.28.4)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(react@19.0.0))(react@19.0.0)
 

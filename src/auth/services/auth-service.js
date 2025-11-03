@@ -130,7 +130,7 @@ export async function resendVerificationEmail(email) {
       type: 'signup',
       email: email,
       options: {
-        emailRedirectTo: 'com.bsk3s.heavenlyhub://callback',
+        emailRedirectTo: 'https://a-heavenlyhub.com/verify/callback',
       }
     });
 
@@ -195,16 +195,23 @@ export async function checkPremiumAccess(userId) {
       return false;
     }
 
-    // Query the user_profiles table for the has_premium_access flag
-    const { data, error } = await supabase
+    // Query the user_profiles table for the has_premium_access flag with timeout
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Premium access check timeout')), 3000)
+    );
+
+    const queryPromise = supabase
       .from('user_profiles')
       .select('has_premium_access')
       .eq('id', userId)
       .single();
 
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+
     if (error) {
       // If user profile doesn't exist yet, return false (not an error)
       if (error.code === 'PGRST116') {
+        console.log('⚠️ User profile does not exist yet, returning false for premium access');
         return false;
       }
       console.error('Error checking premium access:', error.message);
@@ -215,6 +222,32 @@ export async function checkPremiumAccess(userId) {
     return hasPremiumAccess;
   } catch (error) {
     console.error('Error checking premium access:', error.message);
+    return false; // Return false on timeout or error
+  }
+}
+
+/**
+ * Update premium access status for the current user
+ * This is called after a successful purchase via Superwall
+ */
+export async function updatePremiumAccess(userId, hasPremium) {
+  try {
+    console.log(`🎫 Updating premium access for user ${userId} to:`, hasPremium);
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ has_premium_access: hasPremium })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('❌ Error updating premium access:', error.message);
+      return false;
+    }
+
+    console.log('✅ Premium access updated successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Error updating premium access:', error.message);
     return false;
   }
 }

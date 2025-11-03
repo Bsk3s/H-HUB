@@ -22,7 +22,7 @@ export default {
         "ios": {
             "supportsTablet": true,
             "bundleIdentifier": IS_PRODUCTION ? "com.bsk3s.heavenlyhub" : "com.bsk3s.heavenlyhub.dev",
-            "buildNumber": "245",
+            "buildNumber": "251",
             "jsEngine": "hermes",
             "infoPlist": {
                 "ITSAppUsesNonExemptEncryption": false,
@@ -117,6 +117,7 @@ export default {
             ],
             // Always include LiveKit plugin but conditionally configure it
             ["@livekit/react-native-expo-plugin"],
+            "expo-secure-store",
             // Only include expo-dev-client in development builds
             ...(IS_PRODUCTION ? [] : ["expo-dev-client"])
         ],

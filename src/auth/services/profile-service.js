@@ -13,43 +13,52 @@ export async function ensureUserProfile(userId) {
     return null;
   }
 
+  console.log('🔍 [ensureUserProfile] Starting for user:', userId);
+
   try {
     // First, check if a profile already exists
+    console.log('🔍 [ensureUserProfile] Checking if profile exists...');
     const { data: existingProfile, error: fetchError } = await supabase
       .from('user_profiles')
       .select('id')
       .eq('id', userId)
       .maybeSingle();
-    
+
+    console.log('🔍 [ensureUserProfile] Query complete. Profile exists:', !!existingProfile, 'Error:', !!fetchError);
+
     // If there was an error fetching, stop here
     if (fetchError) {
       console.error("Error fetching user profile:", fetchError.message);
       throw fetchError;
     }
-    
+
     // If a profile with this ID already exists, we're done. Return it.
     if (existingProfile) {
+      console.log('✅ [ensureUserProfile] Profile already exists, returning');
       return existingProfile;
     }
-    
+
     // If we've reached here, it means no profile exists. Let's create one.
-    console.log(`No profile found for user ${userId}. Creating one now.`);
+    console.log(`📝 [ensureUserProfile] No profile found for user ${userId}. Creating one now.`);
     const { data: newProfile, error: insertError } = await supabase
       .from('user_profiles')
       .insert([{ id: userId }]) // Only insert the ID, let defaults handle the rest
       .select()
       .single();
-    
+
+    console.log('📝 [ensureUserProfile] Insert complete. Profile created:', !!newProfile, 'Error:', !!insertError);
+
     // If there was an error inserting the new profile, stop here.
     if (insertError) {
       console.error("Database error saving new user:", insertError.message);
       throw new Error("Database error saving new user");
     }
-    
-    console.log(`Successfully created profile for user ${userId}.`);
+
+    console.log(`✅ [ensureUserProfile] Successfully created profile for user ${userId}.`);
     return newProfile;
   } catch (error) {
-    console.error('An error occurred in ensureUserProfile:', error.message);
+    console.error('❌ [ensureUserProfile] Error occurred:', error.message);
+    console.error('❌ [ensureUserProfile] Error stack:', error.stack);
     // We re-throw the original error if it's one of our specific ones
     if (error.message.includes("Database error")) {
       throw error;
@@ -73,7 +82,7 @@ export async function getUserProfile(userId) {
       .select('*')
       .eq('id', userId)
       .maybeSingle();
-    
+
     if (error) {
       console.error('Database error fetching user profile:', error.message);
       throw new Error('Failed to load user profile. Please try again.');
@@ -106,7 +115,7 @@ export async function createUserProfile(userId, profileData) {
       })
       .select()
       .single();
-    
+
     if (error) throw error;
     console.log('Successfully created/updated user profile');
     return data;
@@ -136,16 +145,16 @@ export async function updateUserProfile(userId, profileData) {
       .eq('id', userId)
       .select()
       .single();
-    
+
     if (error) {
       console.error('Database error updating user profile:', error.message);
       throw new Error('Failed to save profile changes. Please try again.');
     }
-    
+
     if (!data) {
       throw new Error('Profile not found or unable to save changes.');
     }
-    
+
     console.log('Successfully updated user profile');
     return data;
   } catch (error) {

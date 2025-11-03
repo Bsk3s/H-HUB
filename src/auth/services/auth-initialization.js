@@ -46,14 +46,15 @@ export const AUTH_STATUS = {
  * No multiple useEffect hooks, no race conditions, no screen flashing.
  * 
  * @param {Object} contextUser - Optional user from AuthContext (for when session doesn't exist yet)
+ * @param {Boolean} skipCache - Skip cached state and fetch fresh data (for auth events)
  * @returns {Promise<Object>} Complete auth state
  */
-export async function initializeAuth(contextUser = null) {
+export async function initializeAuth(contextUser = null, skipCache = false) {
     console.log('🔐 Initializing authentication...', contextUser ? `with context user: ${contextUser.email}` : '');
 
     try {
-        // Step 1: Try to get cached state for optimistic rendering
-        const cachedState = await getCachedAuthState();
+        // Step 1: Try to get cached state for optimistic rendering (unless skipCache is true)
+        const cachedState = skipCache ? null : await getCachedAuthState();
         console.log('📦 Cached state:', cachedState ? 'Found' : 'None');
 
         // Step 2: Check for valid Supabase session

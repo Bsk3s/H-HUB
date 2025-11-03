@@ -53,32 +53,11 @@ const AuthProvider = ({ children }) => {
         console.log('🔔 Auth state changed:', event);
       }
 
-      // ✅ Update user state AND authState for any session that exists
+      // ✅ Update user state for any session that exists (SIMPLE - no async calls)
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
         if (session?.user) {
           console.log('✅ User authenticated:', session.user.email);
           setUser(session.user);
-
-          // Also update authState from listener to prevent double renders
-          const isVerified = !!session.user.email_confirmed_at;
-          if (!isVerified) {
-            setAuthState({
-              status: AUTH_STATUS.AUTHENTICATED_UNVERIFIED,
-              user: session.user,
-              isVerified: false,
-              hasPremiumAccess: false,
-              hasSubscription: false,
-            });
-          } else {
-            setAuthState({
-              status: AUTH_STATUS.AUTHENTICATED_NO_ACCESS,
-              user: session.user,
-              isVerified: true,
-              hasPremiumAccess: false,
-              hasSubscription: false,
-            });
-          }
-
           // Set auth flag in AsyncStorage
           AsyncStorage.setItem('isAuthenticated', 'true');
         }
@@ -86,13 +65,6 @@ const AuthProvider = ({ children }) => {
         // Only log out on explicit SIGNED_OUT event
         console.log('🚪 User explicitly signed out');
         setUser(null);
-        setAuthState({
-          status: AUTH_STATUS.UNAUTHENTICATED,
-          user: null,
-          isVerified: false,
-          hasPremiumAccess: false,
-          hasSubscription: false,
-        });
         // Clear auth flag in AsyncStorage
         AsyncStorage.setItem('isAuthenticated', 'false');
       }
@@ -100,9 +72,11 @@ const AuthProvider = ({ children }) => {
       setInitializing(false);
     });
 
-    // Get current session
+    // Get current session and initialize auth state
     const getInitialSession = async () => {
       try {
+        console.log('🔍 Checking initial session...');
+
         // Check AsyncStorage first for quick auth check
         const storedAuthState = await AsyncStorage.getItem('isAuthenticated');
 
@@ -119,16 +93,37 @@ const AuthProvider = ({ children }) => {
           if (storedAuthState !== 'true') {
             await AsyncStorage.setItem('isAuthenticated', 'true');
           }
+          console.log('✅ Initial session found, auth listener will handle authState');
         } else {
-          // No session, ensure AsyncStorage is consistent
+          // No session - set unauthenticated state immediately
+          console.log('🚫 No initial session found, setting unauthenticated state');
+
+          // Ensure AsyncStorage is consistent
           if (storedAuthState === 'true') {
             await AsyncStorage.setItem('isAuthenticated', 'false');
           }
+
+          // Set unauthenticated state so App.js can render
+          setAuthState({
+            status: AUTH_STATUS.UNAUTHENTICATED,
+            user: null,
+            isVerified: false,
+            hasPremiumAccess: false,
+            hasSubscription: false,
+          });
         }
 
         setUser(data.session?.user ?? null);
       } catch (err) {
         console.error('❌ Error checking auth state:', err);
+        // Set unauthenticated state on error so app doesn't hang
+        setAuthState({
+          status: AUTH_STATUS.UNAUTHENTICATED,
+          user: null,
+          isVerified: false,
+          hasPremiumAccess: false,
+          hasSubscription: false,
+        });
       } finally {
         setInitializing(false);
         // Log final state after initialization
@@ -277,9 +272,16 @@ const AuthProvider = ({ children }) => {
         await AsyncStorage.setItem('isAuthenticated', 'true');
         console.log('💾 isAuthenticated set in AsyncStorage');
         console.log('🎯 User state updated, App.js should now route to EmailVerificationScreen');
-      }
 
-      return true;
+        return true;
+      } else {
+        // No user returned - signup failed silently
+        console.error('❌ Signup failed - no user returned from Supabase');
+        setError({
+          message: 'Failed to create account. Please try again.'
+        });
+        return false;
+      }
     } catch (err) {
       console.error('❌ Registration error:', err);
 
