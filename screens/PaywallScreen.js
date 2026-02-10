@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text, TouchableOpacity, SafeAreaView, Linking, ScrollView } from 'react-native';
 import { usePlacement, useSuperwall } from 'expo-superwall';
+import { useIsFocused } from '@react-navigation/native';
 import { useAuth } from '../src/auth/context';
 import { updatePremiumAccess } from '../src/auth/services/auth-service';
 import { supabase } from '../src/auth/supabase-client';
@@ -9,6 +10,7 @@ export default function PaywallScreen({ navigation }) {
     const { user, logout } = useAuth();
     const [paywallDismissed, setPaywallDismissed] = useState(false);
     const { subscriptionStatus } = useSuperwall();
+    const isFocused = useIsFocused();
 
     const { registerPlacement, state } = usePlacement({
         onError: (err) => {
@@ -93,7 +95,12 @@ export default function PaywallScreen({ navigation }) {
     }, [subscriptionStatus]);
 
     useEffect(() => {
-        console.log('💰 PaywallScreen mounted - showing Superwall paywall');
+        if (!isFocused) {
+            console.log('💰 PaywallScreen not focused - skipping paywall presentation');
+            return;
+        }
+
+        console.log('💰 PaywallScreen focused - showing Superwall paywall');
 
         // Reset dismissed state when screen loads
         setPaywallDismissed(false);
@@ -114,7 +121,7 @@ export default function PaywallScreen({ navigation }) {
         };
 
         showPaywall();
-    }, [user]);
+    }, [user, isFocused]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -221,6 +228,17 @@ export default function PaywallScreen({ navigation }) {
                         activeOpacity={0.8}
                     >
                         <Text style={styles.subscribeButtonText}>View Subscription Plans</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.promoCodeButton}
+                        onPress={() => {
+                            console.log('🎁 User tapped "Have a promo code?" - navigating to PromoCode');
+                            navigation.navigate('PromoCode');
+                        }}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.promoCodeText}>Have a promo code?</Text>
                     </TouchableOpacity>
                 </ScrollView>
             )}
@@ -399,6 +417,16 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '700',
         color: '#ffffff',
+    },
+    promoCodeButton: {
+        marginTop: 16,
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    promoCodeText: {
+        fontSize: 15,
+        color: '#667eea',
+        fontWeight: '600',
     },
     legalContainer: {
         position: 'absolute',

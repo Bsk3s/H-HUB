@@ -23,14 +23,19 @@ import {
   Sun,
   Shield,
   FileText,
+  Gift,
+  Lock,
 } from 'lucide-react-native';
 import { useAuth } from '../src/auth/context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../src/auth/supabase-client';
 // TODO: Import when implemented
 // import { clearUserOnboardingData } from '../src/auth/services/onboarding-service';
 
 export default function SettingsScreen({ navigation }) {
   const { user, logout } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [hasPremium, setHasPremium] = useState(true); // Default true to hide row until checked
   const [settings, setSettings] = useState({
     notifications: true,
     streakAlerts: true,
@@ -42,7 +47,26 @@ export default function SettingsScreen({ navigation }) {
 
   useEffect(() => {
     loadSettings();
+    checkAdminStatus();
   }, []);
+
+  const checkAdminStatus = async () => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('is_admin, has_premium_access')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data) {
+        if (data.is_admin) setIsAdmin(true);
+        setHasPremium(data.has_premium_access === true);
+      }
+    } catch (err) {
+      console.log('Admin check skipped:', err.message);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -321,6 +345,18 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       <ScrollView style={styles.scrollView}>
+        {/* Admin Controls - only visible for admin users */}
+        {isAdmin && (
+          <SettingSection title="Admin Controls">
+            <SettingRow
+              icon={Lock}
+              title="Command Center"
+              subtitle="Push notification dashboard"
+              onPress={() => navigation.navigate('CommandCenter')}
+            />
+          </SettingSection>
+        )}
+
         {/* Account Section */}
         <SettingSection title="Account">
           <SettingRow
@@ -335,6 +371,14 @@ export default function SettingsScreen({ navigation }) {
             subtitle="Update your account password"
             onPress={handleChangePassword}
           />
+          {!hasPremium && (
+            <SettingRow
+              icon={Gift}
+              title="Redeem Code"
+              subtitle="Enter a promo code for free access"
+              onPress={() => navigation.navigate('PromoCode')}
+            />
+          )}
           <SettingRow
             icon={Trash2}
             title="Delete Account"

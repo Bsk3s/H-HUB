@@ -2,7 +2,7 @@
   "expo": {
     "name": "Heavenly Hub",
     "slug": "heavenlyhub",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/HB.png",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bsk3s.heavenlyhub",
-      "buildNumber": "233",
+      "buildNumber": "254",
       "associatedDomains": [
         "applinks:app.a-heavenlyhub.com",
         "webcredentials:app.a-heavenlyhub.com"

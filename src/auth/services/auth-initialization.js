@@ -16,6 +16,7 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase-client';
 import { checkPremiumAccess } from './auth-service';
+import { SUPABASE_URL } from '../../config/supabase';
 
 // Storage keys
 const SECURE_KEYS = {
@@ -36,6 +37,7 @@ export const AUTH_STATUS = {
     UNAUTHENTICATED: 'unauthenticated',
     AUTHENTICATED_UNVERIFIED: 'authenticated_unverified',
     AUTHENTICATED_NO_ACCESS: 'authenticated_no_access',
+    AUTHENTICATED_PROMO_AVAILABLE: 'authenticated_promo_available',
     AUTHENTICATED_WITH_ACCESS: 'authenticated_with_access',
 };
 
@@ -126,10 +128,22 @@ export async function initializeAuth(contextUser = null, skipCache = false) {
         const hasPremiumAccess = await checkPremiumAccess(user.id);
         console.log(`🎫 Premium access: ${hasPremiumAccess ? '✅' : '❌'}`);
 
+        // Step 5: If no premium, check for active promo campaigns
+        let hasActivePromo = false;
+        if (!hasPremiumAccess) {
+            hasActivePromo = await checkActivePromos(session);
+            console.log(`🎁 Active promo available: ${hasActivePromo ? '✅' : '❌'}`);
+        }
+
         // Determine final status
-        const finalStatus = hasPremiumAccess
-            ? AUTH_STATUS.AUTHENTICATED_WITH_ACCESS
-            : AUTH_STATUS.AUTHENTICATED_NO_ACCESS;
+        let finalStatus;
+        if (hasPremiumAccess) {
+            finalStatus = AUTH_STATUS.AUTHENTICATED_WITH_ACCESS;
+        } else if (hasActivePromo) {
+            finalStatus = AUTH_STATUS.AUTHENTICATED_PROMO_AVAILABLE;
+        } else {
+            finalStatus = AUTH_STATUS.AUTHENTICATED_NO_ACCESS;
+        }
 
         // Cache the final state
         await cacheAuthState({
@@ -145,6 +159,7 @@ export async function initializeAuth(contextUser = null, skipCache = false) {
             user,
             isVerified: true,
             hasPremiumAccess,
+            hasActivePromo,
             hasSubscription: false, // Will be updated by Superwall
         };
 
@@ -267,6 +282,52 @@ export async function getAuthTokens() {
     } catch (error) {
         console.error('⚠️ Failed to get tokens:', error);
         return { accessToken: null, refreshToken: null };
+    }
+}
+
+/**
+ * Check if there are active promo campaigns the user hasn't redeemed
+ * This is a lightweight check that runs during auth initialization.
+ * Returns false on any error (fail open - don't block the user).
+ */
+async function checkActivePromos(session) {
+    try {
+        if (!session?.access_token || !SUPABASE_URL) {
+            return false;
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+        const response = await fetch(
+            `${SUPABASE_URL}/functions/v1/check-active-promos`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                signal: controller.signal,
+            }
+        );
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            console.log('⚠️ Active promo check returned non-OK status:', response.status);
+            return false;
+        }
+
+        const data = await response.json();
+        return data.has_active_promo === true;
+    } catch (error) {
+        // Fail open: if the check fails, skip the promo screen
+        if (error.name === 'AbortError') {
+            console.log('⚠️ Active promo check timed out - skipping');
+        } else {
+            console.log('⚠️ Active promo check failed:', error.message);
+        }
+        return false;
     }
 }
 

@@ -7,7 +7,7 @@ export default {
     "expo": {
         "name": "Heavenly Hub",
         "slug": "heavenlyhub",
-        "version": "1.0.0",
+        "version": "1.0.2",
         "orientation": "portrait",
         "icon": "./assets/HB.png",
         "userInterfaceStyle": "light",
@@ -22,7 +22,7 @@ export default {
         "ios": {
             "supportsTablet": true,
             "bundleIdentifier": IS_PRODUCTION ? "com.bsk3s.heavenlyhub" : "com.bsk3s.heavenlyhub.dev",
-            "buildNumber": "251",
+            "buildNumber": "254",
             "jsEngine": "hermes",
             "infoPlist": {
                 "ITSAppUsesNonExemptEncryption": false,

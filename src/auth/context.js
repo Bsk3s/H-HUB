@@ -12,6 +12,9 @@ import { signInWithEmail, signUpWithEmail, signOut as supabaseSignOut, resetPass
 import { signInWithGoogle as supabaseSignInWithGoogle, signInWithApple as supabaseSignInWithApple } from './services/social-auth';
 import { ensureUserProfile } from './services/profile-service';
 
+// Import notification service
+import { registerPushToken, unlinkPushToken, setupNotificationListeners, removeNotificationListeners } from '../services/notifications';
+
 // Create a context for authentication
 const AuthContext = createContext(null);
 
@@ -60,6 +63,10 @@ const AuthProvider = ({ children }) => {
           setUser(session.user);
           // Set auth flag in AsyncStorage
           AsyncStorage.setItem('isAuthenticated', 'true');
+          // Register push token for this user (non-blocking)
+          registerPushToken(session.user.id).catch(err =>
+            console.log('⚠️ Push token registration deferred:', err.message)
+          );
         }
       } else if (event === 'SIGNED_OUT') {
         // Only log out on explicit SIGNED_OUT event
@@ -166,10 +173,22 @@ const AuthProvider = ({ children }) => {
       }
     });
 
+    // Set up notification listeners for foreground/tap handling
+    setupNotificationListeners(
+      (notification) => {
+        console.log('📬 In-app notification:', notification.request.content.title);
+      },
+      (response) => {
+        const data = response.notification.request.content.data;
+        console.log('👆 Notification tapped, data:', data);
+      }
+    );
+
     return () => {
       console.log('🧹 Cleaning up auth listener subscription');
       authListener?.subscription?.unsubscribe();
       linkingSubscription?.remove();
+      removeNotificationListeners();
     };
   }, []);
 
@@ -553,6 +572,11 @@ const AuthProvider = ({ children }) => {
       // First, get the current session to log details
       const { data: currentSession } = await supabase.auth.getSession();
       console.log('📋 Current session before logout:', currentSession?.session ? 'exists' : 'null');
+
+      // Unlink push token from this user before signing out
+      await unlinkPushToken().catch(err =>
+        console.log('⚠️ Push token unlink skipped:', err.message)
+      );
 
       // Attempt to sign out via Supabase
       console.log('🔄 Calling supabase.auth.signOut()...');

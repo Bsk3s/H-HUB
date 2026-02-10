@@ -42,6 +42,8 @@ import EditProfileScreen from './screens/EditProfileScreen';
 import ChangePasswordScreen from './screens/ChangePasswordScreen';
 import StoriesScreen from './screens/StoriesScreen';
 import StoryDetailScreen from './screens/StoryDetailScreen';
+import CommandCenterScreen from './screens/CommandCenterScreen';
+import PromoCodeScreen from './screens/PromoCodeScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -328,6 +330,9 @@ function RootNavigator({ navigationRef }) {
       case AUTH_STATUS.AUTHENTICATED_UNVERIFIED:
         targetScreen = 'Onboarding';
         break;
+      case AUTH_STATUS.AUTHENTICATED_PROMO_AVAILABLE:
+        targetScreen = 'PromoCode';
+        break;
       case AUTH_STATUS.AUTHENTICATED_NO_ACCESS:
         targetScreen = 'Paywall';
         break;
@@ -373,6 +378,9 @@ function RootNavigator({ navigationRef }) {
       break;
     case AUTH_STATUS.AUTHENTICATED_UNVERIFIED:
       initialRouteName = 'Onboarding';
+      break;
+    case AUTH_STATUS.AUTHENTICATED_PROMO_AVAILABLE:
+      initialRouteName = 'PromoCode';
       break;
     case AUTH_STATUS.AUTHENTICATED_NO_ACCESS:
       initialRouteName = 'Paywall';
@@ -432,6 +440,13 @@ function RootNavigator({ navigationRef }) {
           options={{ gestureEnabled: false }}
         />
 
+        {/* Promo Code Screen (shown before paywall when active campaign exists) */}
+        <Stack.Screen
+          name="PromoCode"
+          component={PromoCodeScreen}
+          options={{ gestureEnabled: false }}
+        />
+
         {/* Paywall Screen */}
         <Stack.Screen
           name="Paywall"
@@ -452,6 +467,7 @@ function RootNavigator({ navigationRef }) {
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
         <Stack.Screen name="Stories" component={StoriesScreen} />
         <Stack.Screen name="StoryDetail" component={StoryDetailScreen} />
+        <Stack.Screen name="CommandCenter" component={CommandCenterScreen} />
       </Stack.Navigator>
     </>
   );
